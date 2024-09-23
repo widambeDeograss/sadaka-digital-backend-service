@@ -1,16 +1,14 @@
 services:
-  db:
+  sadaka_db:
     container_name: postgres_sadaka
     image: postgres:latest
     environment:
-      POSTGRES_DB: promauzo_sp_data
-      POSTGRES_PASSWORD: promauzo_db_wid_##password
-      POSTGRES_USER: prowidambeadmin
+      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_USER: ${DATABASE_USER}
       PGDATA: /data/postgres
     ports:
       - "5352:5432"
-    networks:
-      - db
     restart: unless-stopped
 
   web:
@@ -26,8 +24,8 @@ services:
       - "8000:8000"
     env_file:
       - .env
-    # depends_on:
-    #   - db
+    depends_on:
+       - sadaka_db
     environment:
       - SECRET_KEY=${SECRET_KEY}
       - DEBUG=${DEBUG}
@@ -40,7 +38,3 @@ services:
 
 volumes:
   postgres_data:
-
-
-networks:
-  db:
