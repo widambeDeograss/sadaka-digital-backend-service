@@ -71,6 +71,7 @@ class Package(models.Model):
     updated_by = models.CharField(max_length=255)
     updated_at = models.DateTimeField(auto_now=True)
 
+
 class Wahumini(models.Model):
     GENDER_CHOICES = (
         ('male', 'Male'),
@@ -78,7 +79,7 @@ class Wahumini(models.Model):
     )
     user = models.OneToOneField('user_management.User', on_delete=models.SET_NULL, null=True, blank=True,
                              related_name='wahumini', help_text='Link to a user if the wahumini is a registered user.')
-
+    church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
     first_name = models.CharField(max_length=100, null=True, blank=True,
                                   help_text='First name for non-registered wahumini.')
     last_name = models.CharField(max_length=100, null=True, blank=True,
@@ -102,19 +103,154 @@ class Wahumini(models.Model):
         return f"Wahumini: {self.first_name} {self.last_name} (Non-Registered)"
 
 
-
 class CardsNumber(models.Model):
-    user = models.ForeignKey('user_management.User', on_delete=models.CASCADE)
-    card_number = models.CharField(max_length=255)
-    card_name = models.CharField(max_length=255)
-    card_expiry = models.CharField(max_length=255)
-    card_cvv = models.CharField(max_length=255)
+    BAHASHA_TYPES = (
+        ('zaka', 'zaka'),
+        ('sadaka', 'sadaka'),
+    )
+    mhumini = models.ForeignKey('Wahumini', on_delete=models.CASCADE, related_name='nambaza_kadi')
+    card_no = models.CharField(max_length=50, unique=True, help_text='Unique card number for identification.')
+    created_by = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_by = models.CharField(max_length=255)
+    updated_at = models.DateTimeField(auto_now=True)
     card_status = models.BooleanField(default=True)
-    type = models.CharField(max_length=255)
+    bahasha_type = models.CharField(max_length=10, choices=BAHASHA_TYPES, default='sadaka')
 
     def __str__(self):
-        return self.card_number
-    
-    class Meta:
-        db_table = 'cards_number_table'
+        return f"Nambaza Kadi: {self.card_no} (Wahumini: {self.mhumini.name})"
 
+
+
+class PaymentType(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
+    description = models.TextField(null=True, blank=True)
+    created_by = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_by = models.CharField(max_length=255)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+
+class Sadaka(models.Model):
+    church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
+    bahasha = models.ForeignKey(CardsNumber, on_delete=models.CASCADE, null=True, blank=True)
+    sadaka_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    collected_by = models.CharField(max_length=255)
+    payment_type = models.ForeignKey(PaymentType, on_delete=models.CASCADE)
+    date = models.DateField()
+    inserted_by = models.CharField(max_length=255)
+    inserted_at = models.DateTimeField(auto_now_add=True)
+    updated_by = models.CharField(max_length=255)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Sadaka: {self.sadaka_amount} by {self.collected_by}"
+
+
+class Zaka(models.Model):
+    church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
+    bahasha = models.ForeignKey(CardsNumber, on_delete=models.CASCADE, null=True, blank=True)
+    zaka_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_type = models.ForeignKey(PaymentType, on_delete=models.CASCADE)
+    collected_by = models.CharField(max_length=255)
+    date = models.DateField()
+    inserted_by = models.CharField(max_length=255)
+    inserted_at = models.DateTimeField(auto_now_add=True)
+    updated_by = models.CharField(max_length=255)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Zakaa: {self.zaka_amount} by {self.collected_by}"
+
+
+class PaymentTypeTransfer(models.Model):
+    payment_type = models.ForeignKey(PaymentType, on_delete=models.CASCADE, related_name='transfers', help_text='Link to the payment type used for the transfer.')
+    amount = models.DecimalField(max_digits=10, decimal_places=4)
+    church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
+    transfer_date = models.DateTimeField(auto_now_add=True)
+    created_by = models.CharField(max_length=255)
+    updated_by = models.CharField(max_length=255)
+
+    def __str__(self):
+        return f"Transfer of {self.amount} using {self.payment_type.name}"
+
+
+class Revenue(models.Model):
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
+    revenue_type = models.CharField(max_length=100)
+    date_received = models.DateField()
+    created_by = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_by = models.CharField(max_length=255)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.revenue_type}: {self.amount} on {self.date_received}"
+
+
+
+class ExpenseCategory(models.Model):
+    church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
+    category_name = models.CharField(max_length=255)
+    inserted_by = models.CharField(max_length=255)
+    inserted_at = models.DateTimeField(auto_now_add=True)
+    updated_by = models.CharField(max_length=255)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.category_name
+
+
+class Expense(models.Model):
+    church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    date = models.DateField()
+    spent_by = models.CharField(max_length=255)
+    expense_category = models.ForeignKey(ExpenseCategory, on_delete=models.CASCADE)
+    inserted_by = models.CharField(max_length=255)
+    inserted_at = models.DateTimeField(auto_now_add=True)
+    updated_by = models.CharField(max_length=255)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Expense: {self.amount} - {self.expense_category.category_name}"
+
+
+
+class Mchango(models.Model):
+    church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
+    mchango_name = models.CharField(max_length=255)
+    mchango_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    mchango_description = models.TextField()
+    target_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    collected_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    date = models.DateField()
+    inserted_by = models.CharField(max_length=255)
+    inserted_at = models.DateTimeField(auto_now_add=True)
+    updated_by = models.CharField(max_length=255)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Mchango: {self.mchango_name} collected {self.collected_amount}"
+
+
+
+class Ahadi(models.Model):
+    wahumini = models.ForeignKey('Wahumini', on_delete=models.CASCADE, related_name='ahadi')
+    mchango = models.ForeignKey('Mchango', on_delete=models.CASCADE, related_name='ahadi', null=True, blank=True )
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    paid_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    date_pledged = models.DateField()
+    due_date = models.DateField()
+    created_by = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_by = models.CharField(max_length=255)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Ahadi by {self.wahumini} for {self.mchango} - {self.amount}"
