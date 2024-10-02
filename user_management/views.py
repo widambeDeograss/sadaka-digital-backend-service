@@ -5,7 +5,7 @@ from rest_framework.views import APIView # type: ignore
 from .serializer import *
 from django.contrib.auth import authenticate, login, update_session_auth_hash
 from .models import *
-from rest_framework.generics import UpdateAPIView # type: ignore
+from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework.authtoken.models import Token # type: ignore
 from rest_framework.decorators import api_view, permission_classes # type: ignore
 
@@ -154,3 +154,40 @@ class DeleteStaffView(APIView):
             return Response({"success": True, "message": "Staff deleted successfully."})
         except User.DoesNotExist:
             return Response({"success": False, "message": "User not found."})
+
+
+class SystemRoleListCreateView(ListCreateAPIView):
+    queryset = SystemRole.objects.all()
+    serializer_class = SystemRoleSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class SystemRoleRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
+    queryset = SystemRole.objects.all()
+    serializer_class = SystemRoleSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class SystemPermissionListCreateView(ListCreateAPIView):
+    queryset = SystemPermission.objects.all()
+    serializer_class = SystemPermissionSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class SystemPermissionRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
+    queryset = SystemPermission.objects.all()
+    serializer_class = SystemPermissionSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class NotificationListCreateView(ListCreateAPIView):
+    queryset = Notification.objects.all()
+    serializer_class = NotificationSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class NotificationRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
+    queryset = Notification.objects.all()
+    serializer_class = NotificationSerializer
+    permission_classes = [IsAuthenticated]
+

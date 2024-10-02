@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, Group, Permission
 import uuid
 
 
@@ -28,10 +28,26 @@ class User(AbstractUser):
     user_active = models.BooleanField(default=True)
     user_deleted = models.BooleanField(default=False)
     user_created_at = models.DateTimeField(auto_now_add=True)
-    role = models.OneToOneField(SystemRole, on_delete=models.CASCADE, blank=True, null=True)
+    role = models.OneToOneField(SystemRole, on_delete=models.CASCADE, blank=True, null=True, related_name='custom_role')
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = [email]
+
+
+    # Update these fields
+    groups = models.ManyToManyField(
+        Group,
+        related_name='custom_user_set',  # Unique name to avoid clashes
+        blank=True,
+        help_text='The groups this user belongs to.'
+    )
+
+    user_permissions = models.ManyToManyField(
+        Permission,
+        related_name='custom_user_permissions_set',  # Unique name to avoid clashes
+        blank=True,
+        help_text='Specific permissions for this user.'
+    )
 
     def __str__(self):
         return self.username
@@ -42,7 +58,7 @@ class User(AbstractUser):
 
 class SystemPermission(models.Model):
     permission_name = models.CharField(max_length=255, unique=True)
-    role = models.ForeignKey(SystemRole, on_delete=models.CASCADE)
+    role = models.ForeignKey(SystemRole, on_delete=models.CASCADE, related_name='role_permissions')
     inserted_by = models.CharField(max_length=255)
     inserted_at = models.DateTimeField(auto_now_add=True)
     updated_by = models.CharField(max_length=255)

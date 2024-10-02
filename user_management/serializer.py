@@ -35,3 +35,22 @@ class ChangePasswordSerializer(serializers.Serializer):
     
     old_password = serializers.CharField(required=True)
     new_password = serializers.CharField(required=True)
+
+
+
+class SystemRoleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SystemRole
+        fields = "__all__"
+
+
+class SystemPermissionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SystemPermission
+        fields = "__all__"
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = "__all__"

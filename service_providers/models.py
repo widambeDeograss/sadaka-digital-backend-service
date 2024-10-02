@@ -61,7 +61,7 @@ class ServiceProvider(models.Model):
 class Package(models.Model):
     package = models.ForeignKey(SystemPackage, on_delete=models.CASCADE)
     church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
-    package_offer = models.ForeignKey(SystemOffer, on_delete=models.CASCADE)
+    package_offer = models.ForeignKey(SystemOffer, on_delete=models.CASCADE, related_name='package_offer')
     is_active = models.BooleanField(default=False)
     payed_amount = models.IntegerField()
     package_start_date = models.DateTimeField()
