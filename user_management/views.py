@@ -10,6 +10,7 @@ from rest_framework.authtoken.models import Token # type: ignore
 from rest_framework.decorators import api_view, permission_classes # type: ignore
 
 
+
 class RegisterUser(APIView):
     permission_classes = [AllowAny]
 
@@ -159,25 +160,25 @@ class DeleteStaffView(APIView):
 class SystemRoleListCreateView(ListCreateAPIView):
     queryset = SystemRole.objects.all()
     serializer_class = SystemRoleSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
 
 class SystemRoleRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     queryset = SystemRole.objects.all()
     serializer_class = SystemRoleSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
 
 class SystemPermissionListCreateView(ListCreateAPIView):
     queryset = SystemPermission.objects.all()
     serializer_class = SystemPermissionSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
 
 class SystemPermissionRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     queryset = SystemPermission.objects.all()
     serializer_class = SystemPermissionSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
 
 class NotificationListCreateView(ListCreateAPIView):

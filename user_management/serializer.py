@@ -5,6 +5,7 @@ from django.contrib.auth.forms import PasswordChangeForm
 from .models import *
 
 
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User

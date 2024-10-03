@@ -3,8 +3,20 @@ from django.contrib.auth.models import AbstractUser, Group, Permission
 import uuid
 
 
+class SystemPermission(models.Model):
+    permission_name = models.CharField(max_length=255, unique=True)
+    inserted_by = models.CharField(max_length=255)
+    inserted_at = models.DateTimeField(auto_now_add=True)
+    updated_by = models.CharField(max_length=255)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.permission_name
+
+
 class SystemRole(models.Model):
     role_name = models.CharField(max_length=255, unique=True)
+    permissions = models.ForeignKey(SystemPermission, on_delete=models.CASCADE, related_name='role_permissions')
     inserted_by = models.CharField(max_length=255)
     inserted_at = models.DateTimeField(auto_now_add=True)
     updated_by = models.CharField(max_length=255)
@@ -56,19 +68,7 @@ class User(AbstractUser):
         db_table = 'user_table'
 
 
-class SystemPermission(models.Model):
-    permission_name = models.CharField(max_length=255, unique=True)
-    role = models.ForeignKey(SystemRole, on_delete=models.CASCADE, related_name='role_permissions')
-    inserted_by = models.CharField(max_length=255)
-    inserted_at = models.DateTimeField(auto_now_add=True)
-    updated_by = models.CharField(max_length=255)
-    updated_at = models.DateTimeField(auto_now=True)
 
-    def __str__(self):
-        return self.permission_name
-
-
-from django.db import models
 
 class Notification(models.Model):
     NOTIFICATION_TYPES = (
