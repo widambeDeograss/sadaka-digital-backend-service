@@ -16,7 +16,7 @@ class SystemPermission(models.Model):
 
 class SystemRole(models.Model):
     role_name = models.CharField(max_length=255, unique=True)
-    permissions = models.ForeignKey(SystemPermission, on_delete=models.CASCADE, related_name='role_permissions')
+    permissions = models.ManyToManyField(SystemPermission, related_name='role_permissions')
     inserted_by = models.CharField(max_length=255)
     inserted_at = models.DateTimeField(auto_now_add=True)
     updated_by = models.CharField(max_length=255)
@@ -37,13 +37,17 @@ class User(AbstractUser):
     email = models.EmailField(unique=True)
     firstname = models.CharField(max_length=255)
     lastname = models.CharField(max_length=255)
+    phone = models.CharField(max_length=12, default=11111111)
     user_active = models.BooleanField(default=True)
     user_deleted = models.BooleanField(default=False)
     user_created_at = models.DateTimeField(auto_now_add=True)
-    role = models.OneToOneField(SystemRole, on_delete=models.CASCADE, blank=True, null=True, related_name='custom_role')
+    is_top_admin = models.BooleanField(default=False)
+    is_sp_admin = models.BooleanField(default=False)
+    is_sp_manager = models.BooleanField(default=False)
+    role = models.ForeignKey(SystemRole, on_delete=models.CASCADE, blank=True, null=True, related_name='custom_role')
 
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = [email]
+    REQUIRED_FIELDS = ["username"]
 
 
     # Update these fields

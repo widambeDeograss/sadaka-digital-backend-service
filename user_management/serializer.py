@@ -9,13 +9,21 @@ from .models import *
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
+        depth = 2
         fields = [
-            "id",
-            "username",
-            "email",
-            "firstname",
-            "lastname",
-            "password",
+            'id',
+            'username',
+            'email',
+            'firstname',
+            'lastname',
+            'user_active',
+            'user_deleted',
+            'user_created_at',
+            'is_top_admin',
+            'is_sp_admin',
+            'is_sp_manager',
+            'phone',
+            'role'
         ]
         extra_kwargs = {"password": {"write_only": True}}
 
@@ -28,7 +36,7 @@ class UserGetSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = "__all__"
-        depth = 1
+        depth = 2
 
 
 class ChangePasswordSerializer(serializers.Serializer):
@@ -38,18 +46,18 @@ class ChangePasswordSerializer(serializers.Serializer):
     new_password = serializers.CharField(required=True)
 
 
-
-class SystemRoleSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = SystemRole
-        fields = "__all__"
-
-
 class SystemPermissionSerializer(serializers.ModelSerializer):
     class Meta:
         model = SystemPermission
         fields = "__all__"
+        depth = 2
 
+class SystemRoleSerializer(serializers.ModelSerializer):
+    permissions = SystemPermissionSerializer(many=True, read_only=True)
+    class Meta:
+        model = SystemRole
+        fields = "__all__"
+        depth = 2
 
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:

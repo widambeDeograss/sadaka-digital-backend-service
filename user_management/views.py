@@ -3,12 +3,12 @@ from rest_framework.permissions import AllowAny, IsAuthenticated # type: ignore
 from rest_framework.response import Response # type: ignore
 from rest_framework.views import APIView # type: ignore
 from .serializer import *
-from django.contrib.auth import authenticate, login, update_session_auth_hash
+from django.contrib.auth import authenticate, login, update_session_auth_hash, get_user_model
 from .models import *
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework.authtoken.models import Token # type: ignore
 from rest_framework.decorators import api_view, permission_classes # type: ignore
-
+from rest_framework_simplejwt.tokens import RefreshToken
 
 
 class RegisterUser(APIView):
@@ -43,36 +43,45 @@ class RegisterUser(APIView):
 #     "password":"123"
 # }
 
-
 class LoginView(APIView):
     permission_classes = [AllowAny]
+    User = get_user_model()
     model = User
 
     def post(self, request):
         email = request.data.get("email")
         password = request.data.get("password")
-        user = authenticate(email=email, password=password)
+
+        if not email or not password:
+            return Response({
+                "success": False,
+                "message": "Email and password are required."
+            }, status=400)
+
+        user = authenticate(request, email=email, password=password)
+        print("==============================")
         print(user)
         if user is not None:
             login(request, user)
-            user_id = User.objects.get(email=email)
-            user_info = UserGetSerializer(instance=user_id, many=False).data
-            token, created = Token.objects.get_or_create(user=user)
-            response = {"success": True, "token": token.key, "user": user_info}
-            return Response(response)
-        if user is None:
-            response = {
-                "success": False,
-                "message": "User doesnot exist",
-            }
-            return Response(response)
-        else:
-            response = {
-                "success": False,
-                "message": "Invalid username or password",
-            }
-            return Response(response)
 
+            user_info = UserGetSerializer(instance=user, many=False).data
+
+            refresh = RefreshToken.for_user(user)
+            access_token = str(refresh.access_token)
+            refresh_token = str(refresh)
+
+            response = {
+                "success": True,
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+                "user": user_info,
+            }
+            return Response(response, status=200)
+        else:
+            return Response({
+                "success": False,
+                "message": "Invalid email or password."
+            }, status=401)
 
 # {
 #     "email":"mike@gmail.com",
@@ -80,25 +89,26 @@ class LoginView(APIView):
 # }
 
 
-# class GetUsersView(APIView):
-#     permission_classes = [IsAuthenticated, ]
-#     @staticmethod
-#     def get(request, query_type):
-#         queryset = User.objects.all()
-#         if query_type == "institute_staff":
-#             institute_id = request.GET.get('institute_id')
-#             queryset = queryset.filter(institution=institute_id, user_deleted=False)
-#             return Response(UserGetSerializer(instance=queryset, many=True))
+class GetUsersView(APIView):
+    permission_classes = [AllowAny, ]
+    @staticmethod
+    def get(request):
+        query_type = request.GET.get("query_type")
+        queryset = User.objects.all()
+        if query_type == "sp_admins":
+            # institute_id = request.GET.get('institute_id')
+            queryset = queryset.filter(is_sp_admin=True)
+            return Response(UserGetSerializer(instance=queryset, many=True).data)
         
-#         if query_type == "active_staff":
-#             queryset = queryset.filter(user_active=True, user_deleted=False)
-#             return Response(UserGetSerializer(instance=queryset, many=True))
+        if query_type == "active_staff":
+            queryset = queryset.filter(user_active=True, user_deleted=False)
+            return Response(UserGetSerializer(instance=queryset, many=True))
         
-#         if query_type == "inactive_staff":
-#             queryset = queryset.filter(user_active=False, user_deleted=False)
-#             return Response(UserGetSerializer(instance=queryset, many=True))
+        if query_type == "inactive_staff":
+            queryset = queryset.filter(user_active=False, user_deleted=False)
+            return Response(UserGetSerializer(instance=queryset, many=True))
         
-#         return Response([])
+        return Response([])
 
 
 

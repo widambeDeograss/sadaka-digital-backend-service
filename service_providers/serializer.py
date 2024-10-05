@@ -36,6 +36,7 @@ class CardsNumberSerializer(serializers.ModelSerializer):
     class Meta:
         model = CardsNumber
         fields = "__all__"
+        # depth = 2
 
 
 class PaymentTypeSerializer(serializers.ModelSerializer):

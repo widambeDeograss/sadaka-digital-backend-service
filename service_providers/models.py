@@ -1,5 +1,7 @@
 from django.db import models
 
+import user_management.models
+
 
 class SystemPackage(models.Model):
     package_name = models.CharField(max_length=255)
@@ -39,12 +41,13 @@ class SystemOffer(models.Model):
 
 
 class ServiceProvider(models.Model):
-    church_name = models.CharField(max_length=255)
+    church_name = models.CharField(max_length=255, unique=True)
     church_location = models.CharField(max_length=255)
-    church_email = models.EmailField()
+    church_email = models.EmailField(unique=True)
     church_phone = models.CharField(max_length=255)
     church_category = models.CharField(max_length=255)
     church_status = models.BooleanField(default=True)
+    sp_admin = models.ForeignKey(user_management.models.User, on_delete=models.CASCADE, null=True, blank=True, unique=True)
     inserted_by = models.CharField(max_length=255)
     inserted_at = models.DateTimeField(auto_now_add=True)
     updated_by = models.CharField(max_length=255)
@@ -108,7 +111,7 @@ class CardsNumber(models.Model):
         ('zaka', 'zaka'),
         ('sadaka', 'sadaka'),
     )
-    mhumini = models.ForeignKey('Wahumini', on_delete=models.CASCADE, related_name='nambaza_kadi')
+    mhumini = models.ForeignKey(Wahumini, on_delete=models.CASCADE, related_name='nambaza_kadi')
     card_no = models.CharField(max_length=50, unique=True, help_text='Unique card number for identification.')
     created_by = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -118,7 +121,7 @@ class CardsNumber(models.Model):
     bahasha_type = models.CharField(max_length=10, choices=BAHASHA_TYPES, default='sadaka')
 
     def __str__(self):
-        return f"Nambaza Kadi: {self.card_no} (Wahumini: {self.mhumini.name})"
+        return f"Nambaza Kadi: {self.card_no} (Wahumini: {self.mhumini.first_name})"
 
 
 

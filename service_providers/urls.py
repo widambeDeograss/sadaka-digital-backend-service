@@ -8,6 +8,7 @@ urlpatterns = [
     path('system-package-retrieve-update-destroy/<int:pk>', SystemPackageRetrieveUpdateDestroyView.as_view(), name="system_package_retrieve_update_destroy"),
     path('system-offer-list-create', SystemOfferListCreateView.as_view(), name="system_offer_list_create"),
     path('system-offer-retrieve-update-destroy/<int:pk>', SystemOfferRetrieveUpdateDestroyView.as_view(), name="system_offer_retrieve_update_destroy"),
+    path('get-provider/admin/<uuid:sp_admin_id>/', ServiceProviderByAdminView.as_view(), name='sp_by_admin'),
     path('service-provider-list-create', ServiceProviderListCreateView.as_view(), name="service_provider_list_create"),
     path('service-provider-retrieve-update-destroy/<int:pk>', ServiceProviderRetrieveUpdateDestroyView.as_view(), name="service_provider_retrieve_update_destroy"),
     path('package-list-create', PackageListCreateView.as_view(), name="package_list_create"),
