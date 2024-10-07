@@ -17,6 +17,7 @@ urlpatterns = [
     path('wahumini-retrieve-update-destroy/<int:pk>', WahuminiRetrieveUpdateDestroyView.as_view(), name="wahumini_retrieve_update_destroy"),
     path('cards-number-list-create', CardsNumberListCreateView.as_view(), name="cards_number_list_create"),
     path('cards-number-retrieve-update-destroy/<int:pk>', CardsNumberRetrieveUpdateDestroyView.as_view(), name="cards_number_retrieve_update_destroy"),
+    path('cards-number-retrieve-by-card-no/<str:card_no>/', CardsNumberRetrieveUpdateDestroyView.as_view(), name="cards_number_retrieve_by_card_no"),
     path('payment-type-list-create', PaymentTypeListCreateView.as_view(), name="payment_type_list_create"),
     path('payment-type-retrieve-update-destroy/<int:pk>', PaymentTypeRetrieveUpdateDestroyView.as_view(), name="payment_type_retrieve_update_destroy"),
     path('sadaka-list-create', SadakaListCreateView.as_view(), name="sadaka_list_create"),

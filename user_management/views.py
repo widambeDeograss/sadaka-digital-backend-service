@@ -2,6 +2,8 @@ from django.db.models import QuerySet
 from rest_framework.permissions import AllowAny, IsAuthenticated # type: ignore
 from rest_framework.response import Response # type: ignore
 from rest_framework.views import APIView # type: ignore
+
+from .authentication import EmailBackend
 from .serializer import *
 from django.contrib.auth import authenticate, login, update_session_auth_hash, get_user_model
 from .models import *
@@ -9,29 +11,37 @@ from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIV
 from rest_framework.authtoken.models import Token # type: ignore
 from rest_framework.decorators import api_view, permission_classes # type: ignore
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
 
-
-class RegisterUser(APIView):
+class RegisterUser(ListCreateAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
     permission_classes = [AllowAny]
 
-    def post(self, request):
-        data = request.data
-
-        serializer = UserSerializer(data=data)
-        if serializer.is_valid():
-            email = data["email"]
-            user = User.objects.filter(email=email)
-            if user:
-                message = {"success": False, "message": "username or email already exists"}
-                return Response(message)
-            serializer.save()
-            return Response({"success": True})
-        return Response({"success": False, "message": serializer.errors})
-
-    @staticmethod
-    def get(request):
-        users = User.objects.all()
-        return Response(UserGetSerializer(instance=users, many=True).data)
+# class RegisterUser(APIView):
+#     permission_classes = [AllowAny]
+#
+#     def post(self, request):
+#         data = request.data
+#
+#         serializer = UserSerializer(data=data)
+#         if serializer.is_valid():
+#             email = data["email"]
+#             user = User.objects.filter(email=email)
+#             if user:
+#                 message = {"success": False, "message": "username or email already exists"}
+#                 return Response(message)
+#             serializer.save()
+#             return Response({"success": True})
+#         return Response({"success": False, "message": serializer.errors})
+#
+#     @staticmethod
+#     def get(request):
+#         users = User.objects.all()
+#         return Response(UserGetSerializer(instance=users, many=True).data)
 
 
 # {
@@ -42,6 +52,11 @@ class RegisterUser(APIView):
 #     "user_role":"ADMIN",
 #     "password":"123"
 # }
+
+
+# class LoginView(TokenObtainPairView):
+#     permission_classes = [AllowAny]
+
 
 class LoginView(APIView):
     permission_classes = [AllowAny]
@@ -58,7 +73,7 @@ class LoginView(APIView):
                 "message": "Email and password are required."
             }, status=400)
 
-        user = authenticate(request, email=email, password=password)
+        user = authenticate(request, email=email, password=password, backend=EmailBackend)
         print("==============================")
         print(user)
         if user is not None:
@@ -84,8 +99,8 @@ class LoginView(APIView):
             }, status=401)
 
 # {
-#     "email":"mike@gmail.com",
-#     "password":"123"
+#     "email":"michael@gmail.com",
+#     "password":"12345"
 # }
 
 

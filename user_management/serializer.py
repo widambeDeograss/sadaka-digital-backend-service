@@ -23,13 +23,23 @@ class UserSerializer(serializers.ModelSerializer):
             'is_sp_admin',
             'is_sp_manager',
             'phone',
-            'role'
+            'role',
+            'password'
         ]
         extra_kwargs = {"password": {"write_only": True}}
 
     def create(self, validated_data):
+        role_data = validated_data.pop('role', None)
         user = User.objects.create_user(**validated_data)
+        if role_data:
+            user.role = role_data
+            user.save()
         return user
+
+    def validate_role(self, value):
+        if not SystemRole.objects.filter(id=value.id).exists():
+            raise serializers.ValidationError("The specified role does not exist.")
+        return value
 
 
 class UserGetSerializer(serializers.ModelSerializer):

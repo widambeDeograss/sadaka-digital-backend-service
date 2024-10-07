@@ -47,7 +47,7 @@ class User(AbstractUser):
     role = models.ForeignKey(SystemRole, on_delete=models.CASCADE, blank=True, null=True, related_name='custom_role')
 
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ["username"]
+    REQUIRED_FIELDS = ["username", "role"]
 
 
     # Update these fields

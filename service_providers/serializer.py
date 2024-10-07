@@ -33,6 +33,8 @@ class WahuminiSerializer(serializers.ModelSerializer):
 
 
 class CardsNumberSerializer(serializers.ModelSerializer):
+    mhumini = serializers.PrimaryKeyRelatedField(queryset=Wahumini.objects.all())
+    mhumini_details = WahuminiSerializer(source='mhumini', read_only=True)
     class Meta:
         model = CardsNumber
         fields = "__all__"
@@ -46,12 +48,17 @@ class PaymentTypeSerializer(serializers.ModelSerializer):
 
 
 class SadakaSerializer(serializers.ModelSerializer):
+    bahasha = serializers.PrimaryKeyRelatedField(queryset=CardsNumber.objects.all(), required=False, allow_null=True)
+    bahasha_details = CardsNumberSerializer(source='bahasha', read_only=True)
     class Meta:
         model = Sadaka
         fields = "__all__"
+        # depth=2
 
 
 class ZakaSerializer(serializers.ModelSerializer):
+    bahasha = serializers.PrimaryKeyRelatedField(queryset=CardsNumber.objects.all(), required=False, allow_null=True)
+    bahasha_details = CardsNumberSerializer(source='bahasha', read_only=True)
     class Meta:
         model = Zaka
         fields = "__all__"

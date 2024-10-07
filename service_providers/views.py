@@ -1,5 +1,7 @@
+
 from django.http import Http404
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
+from django.utils import timezone
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView, RetrieveAPIView
 from rest_framework.permissions import AllowAny, AllowAny
 from rest_framework.response import Response
@@ -75,12 +77,6 @@ class WahuminiListCreateView(ListCreateAPIView):
     serializer_class = WahuminiSerializer
     permission_classes = [AllowAny]
 
-
-class WahuminiRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
-    queryset = Wahumini.objects.all()
-    serializer_class = WahuminiSerializer
-    permission_classes = [AllowAny]
-
     def get_queryset(self):
         church_id = self.request.query_params.get('church_id')
         if church_id:
@@ -88,16 +84,22 @@ class WahuminiRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
         return Wahumini.objects.all()
 
 
+class WahuminiRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
+    queryset = Wahumini.objects.all()
+    serializer_class = WahuminiSerializer
+    permission_classes = [AllowAny]
+
+
 class CardsNumberListCreateView(ListCreateAPIView):
     queryset = CardsNumber.objects.all()
     serializer_class = CardsNumberSerializer
     permission_classes = [AllowAny]
 
-    # def get_queryset(self):
-    #     church_id = self.request.query_params.get('church_id')
-    #     if church_id:
-    #         return CardsNumber.objects.filter(church=church_id)
-    #     return CardsNumber.objects.all()
+    def get_queryset(self):
+        church_id = self.request.query_params.get('church_id')
+        if church_id:
+            return CardsNumber.objects.filter(mhumini__church_id=church_id)
+        return CardsNumber.objects.all()
 
     
 class CardsNumberRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
@@ -105,11 +107,21 @@ class CardsNumberRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     serializer_class = CardsNumberSerializer
     permission_classes = [AllowAny]
 
+    def get_object(self):
+        card_no = self.kwargs.get("card_no")
+        return get_object_or_404(CardsNumber, card_no=card_no)
+
 
 class PaymentTypeListCreateView(ListCreateAPIView):
     queryset = PaymentType.objects.all()
     serializer_class = PaymentTypeSerializer
     permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        church_id = self.request.query_params.get('church_id')
+        if church_id:
+            return PaymentType.objects.filter(church=church_id)
+        return PaymentType.objects.all()
 
 
 class PaymentTypeRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
@@ -123,6 +135,29 @@ class SadakaListCreateView(ListCreateAPIView):
     serializer_class = SadakaSerializer
     permission_classes = [AllowAny]
 
+    def get_queryset(self):
+        church_id = self.request.query_params.get('church_id')
+
+        filter_type = self.request.query_params.get('filter')
+
+        if church_id:
+            queryset = Sadaka.objects.filter(church_id=church_id)
+
+            if filter_type == 'today':
+                today = timezone.now().date()
+                queryset = queryset.filter(inserted_at__date=today)
+            else:
+                queryset = queryset.order_by('-inserted_at')
+
+            return queryset
+        else:
+            return Sadaka.objects.none()
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = SadakaSerializer(queryset, many=True)
+        return Response(serializer.data)
+
 
 class SadakaRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     queryset = Sadaka.objects.all()
@@ -134,6 +169,29 @@ class ZakaListCreateView(ListCreateAPIView):
     queryset = Zaka.objects.all()
     serializer_class = ZakaSerializer
     permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        church_id = self.request.query_params.get('church_id')
+
+        filter_type = self.request.query_params.get('filter')
+
+        if church_id:
+            queryset = Zaka.objects.filter(church_id=church_id)
+
+            if filter_type == 'today':
+                today = timezone.now().date()
+                queryset = queryset.filter(inserted_at__date=today)
+            else:
+                queryset = queryset.order_by('-inserted_at')
+
+            return queryset
+        else:
+            return Zaka.objects.none()
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = ZakaSerializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 class ZakaRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
