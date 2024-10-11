@@ -231,7 +231,8 @@ class Mchango(models.Model):
     mchango_amount = models.DecimalField(max_digits=10, decimal_places=2)
     mchango_description = models.TextField()
     target_amount = models.DecimalField(max_digits=10, decimal_places=2)
-    collected_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    collected_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    status = models.BooleanField(default=True)
     date = models.DateField()
     inserted_by = models.CharField(max_length=255)
     inserted_at = models.DateTimeField(auto_now_add=True)
@@ -241,6 +242,14 @@ class Mchango(models.Model):
     def __str__(self):
         return f"Mchango: {self.mchango_name} collected {self.collected_amount}"
 
+class MchangoPayments(models.Model):
+    mchango = models.ForeignKey(Mchango, on_delete=models.CASCADE)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    mhumini = models.ForeignKey(Wahumini, on_delete=models.CASCADE, null=True, blank=True)
+    inserted_by = models.CharField(max_length=255)
+    inserted_at = models.DateTimeField(auto_now_add=True)
+    updated_by = models.CharField(max_length=255)
+    updated_at = models.DateTimeField(auto_now=True)
 
 
 class Ahadi(models.Model):

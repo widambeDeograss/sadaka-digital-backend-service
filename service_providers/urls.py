@@ -34,6 +34,9 @@ urlpatterns = [
     path('expense-category-retrieve-update-destroy/<int:pk>', ExpenseCategoryRetrieveUpdateDestroyView.as_view(), name="expense_category_retrieve_update_destroy"),
     path('mchango-list-create', MchangoListCreateView.as_view(), name="mchango_list_create"),
     path('mchango-retrieve-update-destroy/<int:pk>', MchangoRetrieveUpdateDestroyView.as_view(), name="mchango_retrieve_update_destroy"),
+    path('mchango-payment-list-create', MchangoPaymentListCreateView.as_view(), name="mchango_payment_list_create"),
+    path('mchango-payment-retrieve-update-destroy/<int:pk>', MchangoPaymentListCreateView.as_view(),
+         name="mchango_retrieve_update_destroy"),
     path('ahadi-list-create', AhadiListCreateView.as_view(), name="ahadi_list_create"),
     path('ahadi-retrieve-update-destroy/<int:pk>', AhadiRetrieveUpdateDestroyView.as_view(), name="ahadi_retrieve_update_destroy"),
 ]

@@ -94,6 +94,16 @@ class MchangoSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class MchangoPaymentSerializer(serializers.ModelSerializer):
+    mhumini = serializers.PrimaryKeyRelatedField(queryset=Wahumini.objects.all())
+    mchango = serializers.PrimaryKeyRelatedField(queryset=Mchango.objects.all())
+    mchango_details = MchangoSerializer(source="mchango", read_only=True)
+    mhumini_details = WahuminiSerializer(source='mhumini', read_only=True)
+    class Meta:
+        model = MchangoPayments
+        fields = "__all__"
+
+
 class AhadiSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ahadi

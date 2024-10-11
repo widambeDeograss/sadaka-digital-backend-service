@@ -1,4 +1,4 @@
-
+from django.db import transaction
 from django.http import Http404
 from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
@@ -45,8 +45,6 @@ class ServiceProviderByAdminView(RetrieveAPIView):
 
     def get_object(self):
         sp_admin_id = self.kwargs.get('sp_admin_id')
-        print("===============================")
-        print(sp_admin_id)
         try:
             return ServiceProvider.objects.get(sp_admin=sp_admin_id)
         except ServiceProvider.DoesNotExist:
@@ -253,12 +251,71 @@ class MchangoListCreateView(ListCreateAPIView):
     serializer_class = MchangoSerializer
     permission_classes = [AllowAny]
 
+    def get_queryset(self):
+        church_id = self.request.query_params.get('church_id')
+        if church_id:
+            return Mchango.objects.filter(church=church_id)
+        return Mchango.objects.all()
+
 
 class MchangoRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     queryset = Mchango.objects.all()
     serializer_class = MchangoSerializer
     permission_classes = [AllowAny]
 
+
+class MchangoPaymentListCreateView(ListCreateAPIView):
+    queryset = MchangoPayments.objects.all()
+    serializer_class = MchangoPaymentSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        mchango_id = self.request.query_params.get('mchango_id')
+
+        filter_type = self.request.query_params.get('filter')
+
+        if mchango_id:
+            queryset = MchangoPayments.objects.filter(mchango_id=mchango_id)
+
+            if filter_type == 'today':
+                today = timezone.now().date()
+                queryset = queryset.filter(inserted_at__date=today)
+            else:
+                queryset = queryset.order_by('-inserted_at')
+
+            return queryset
+        else:
+            return MchangoPayments.objects.none()
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = MchangoPaymentSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @transaction.atomic
+    def perform_create(self, serializer):
+        """
+        Overrides the default perform_create to update the related Mchango's collected_amount.
+        """
+        # Save the MchangoPayment instance
+        mchango_payment = serializer.save()
+
+        try:
+            # Lock the Mchango instance to prevent race conditions
+            mchango = Mchango.objects.select_for_update().get(id=mchango_payment.mchango_id)
+        except Mchango.DoesNotExist:
+            # If the Mchango does not exist, rollback the transaction
+            raise serializers.ValidationError("Mchango does not exist.")
+
+        # Update the collected_amount
+        mchango.collected_amount += mchango_payment.amount
+        mchango.save()
+
+
+class MchangoPaymentRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
+    queryset = MchangoPayments.objects.all()
+    serializer_class = MchangoSerializer
+    permission_classes = [AllowAny]
 
 class AhadiListCreateView(ListCreateAPIView):
     queryset = Ahadi.objects.all()
