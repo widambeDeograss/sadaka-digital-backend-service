@@ -253,6 +253,7 @@ class MchangoPayments(models.Model):
 
 
 class Ahadi(models.Model):
+    church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
     wahumini = models.ForeignKey('Wahumini', on_delete=models.CASCADE, related_name='ahadi')
     mchango = models.ForeignKey('Mchango', on_delete=models.CASCADE, related_name='ahadi', null=True, blank=True )
     amount = models.DecimalField(max_digits=10, decimal_places=2)

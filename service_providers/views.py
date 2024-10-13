@@ -322,6 +322,12 @@ class AhadiListCreateView(ListCreateAPIView):
     serializer_class = AhadiSerializer
     permission_classes = [AllowAny]
 
+    def get_queryset(self):
+        church_id = self.request.query_params.get('church_id')
+        if church_id:
+            return Ahadi.objects.filter(church=church_id)
+        return Ahadi.objects.all()
+
 
 class AhadiRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     queryset = Ahadi.objects.all()
