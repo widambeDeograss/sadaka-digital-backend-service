@@ -39,4 +39,10 @@ urlpatterns = [
          name="mchango_retrieve_update_destroy"),
     path('ahadi-list-create', AhadiListCreateView.as_view(), name="ahadi_list_create"),
     path('ahadi-retrieve-update-destroy/<int:pk>', AhadiRetrieveUpdateDestroyView.as_view(), name="ahadi_retrieve_update_destroy"),
+    path('kanda-list-create', KandaViewListCreate.as_view(), name="kanda_list_create"),
+    path('kanda-retrieve-update-destroy/<int:pk>', KandaViewUpdateDistroy.as_view(),
+         name="kandaa_retrieve_update_destroy"),
+    path('jumuiya-list-create', JumuiyaViewListCreate.as_view(), name="jumuiya_list_create"),
+    path('jumuiya-retrieve-update-destroy/<int:pk>', JumuiyaViewUpdateDistrol.as_view(),
+         name="jumuiyaa_retrieve_update_destroy"),
 ]

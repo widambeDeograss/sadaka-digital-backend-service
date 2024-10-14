@@ -75,6 +75,37 @@ class Package(models.Model):
     updated_by = models.CharField(max_length=255)
     updated_at = models.DateTimeField(auto_now=True)
 
+class Kanda(models.Model):
+    name = models.CharField(max_length=300)
+    church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
+    address = models.TextField(null=True, blank=True)
+    jina_kiongozi = models.CharField(max_length=300)
+    namba_ya_simu = models.CharField(max_length=12, blank=True, null=True)
+    location = models.CharField(null=True, blank=True)
+    created_by = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_by = models.CharField(max_length=255)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Jumuiya: {self.name}"
+
+
+class Jumuiya(models.Model):
+    name = models.CharField(max_length=300)
+    address = models.TextField(null=True, blank=True)
+    jina_kiongozi = models.CharField(max_length=300)
+    kanda = models.ForeignKey(Kanda, on_delete=models.CASCADE, null=True, blank=True)
+    church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
+    namba_ya_simu = models.CharField(max_length=12, blank=True, null=True)
+    location = models.CharField(null=True, blank=True)
+    created_by = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_by = models.CharField(max_length=255)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Jumuiya: {self.name}"
 
 class Wahumini(models.Model):
     GENDER_CHOICES = (
@@ -84,6 +115,7 @@ class Wahumini(models.Model):
     user = models.OneToOneField('user_management.User', on_delete=models.SET_NULL, null=True, blank=True,
                              related_name='wahumini', help_text='Link to a user if the wahumini is a registered user.')
     church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
+    jumuiya = models.ForeignKey(Jumuiya, on_delete=models.CASCADE, null=True, blank=True)
     first_name = models.CharField(max_length=100, null=True, blank=True,
                                   help_text='First name for non-registered wahumini.')
     last_name = models.CharField(max_length=100, null=True, blank=True,

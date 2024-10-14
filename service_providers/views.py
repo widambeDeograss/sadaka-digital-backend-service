@@ -69,6 +69,37 @@ class PackageRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     serializer_class = PackageSerializer
     permission_classes = [AllowAny]
 
+class KandaViewListCreate(ListCreateAPIView):
+    queryset = Kanda.objects.all()
+    serializer_class = KandaSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        church_id = self.request.query_params.get('church_id')
+        if church_id:
+            return Kanda.objects.filter(church=church_id)
+        return Kanda.objects.all()
+
+class KandaViewUpdateDistroy(RetrieveUpdateDestroyAPIView):
+    queryset = Kanda.objects.all()
+    serializer_class = KandaSerializer
+    permission_classes = [AllowAny]
+
+class JumuiyaViewListCreate(ListCreateAPIView):
+    queryset = Jumuiya.objects.all()
+    serializer_class = JumuiyaSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        church_id = self.request.query_params.get('church_id')
+        if church_id:
+            return Jumuiya.objects.filter(church=church_id)
+        return Jumuiya.objects.all()
+
+class JumuiyaViewUpdateDistrol(RetrieveUpdateDestroyAPIView):
+    queryset = Jumuiya.objects.all()
+    serializer_class = JumuiyaSerializer
+    permission_classes = [AllowAny]
 
 class WahuminiListCreateView(ListCreateAPIView):
     queryset = Wahumini.objects.all()

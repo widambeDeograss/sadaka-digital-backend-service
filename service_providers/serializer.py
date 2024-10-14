@@ -25,6 +25,34 @@ class PackageSerializer(serializers.ModelSerializer):
         model = Package
         fields = "__all__"
 
+class KandaSerializer(serializers.ModelSerializer):
+    church = serializers.PrimaryKeyRelatedField(
+        queryset=ServiceProvider.objects.all(),
+        required=True
+    )
+    church_details = ServiceProviderSerializer(source='church', read_only=True)
+
+    class Meta:
+        model = Kanda
+        fields = '__all__'
+
+class JumuiyaSerializer(serializers.ModelSerializer):
+    kanda = serializers.PrimaryKeyRelatedField(
+        queryset=Kanda.objects.all(),
+        allow_null=True,
+        required=False
+    )
+    kanda_details = KandaSerializer(source='kanda', read_only=True)
+    church = serializers.PrimaryKeyRelatedField(
+        queryset=ServiceProvider.objects.all(),
+        required=True
+    )
+    church_details = ServiceProviderSerializer(source='church', read_only=True)
+
+    class Meta:
+        model = Jumuiya
+        fields = '__all__'
+
 
 class WahuminiSerializer(serializers.ModelSerializer):
     class Meta:
