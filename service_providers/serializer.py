@@ -83,6 +83,8 @@ class ExpenseCategorySerializer(serializers.ModelSerializer):
 
     
 class ExpenseSerializer(serializers.ModelSerializer):
+    expense_category = serializers.PrimaryKeyRelatedField(queryset=ExpenseCategory.objects.all())
+    category_details = ExpenseCategorySerializer(source="expense_category", read_only=True)
     class Meta:
         model = Expense
         fields = "__all__"

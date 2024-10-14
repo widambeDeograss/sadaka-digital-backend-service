@@ -227,6 +227,12 @@ class ExpenseListCreateView(ListCreateAPIView):
     serializer_class = ExpenseSerializer
     permission_classes = [AllowAny]
 
+    def get_queryset(self):
+        church_id = self.request.query_params.get('church_id')
+        if church_id:
+            return Expense.objects.filter(church=church_id)
+        return Expense.objects.all()
+
 
 class ExpenseRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     queryset = Expense.objects.all()

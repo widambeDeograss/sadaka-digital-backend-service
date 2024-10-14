@@ -1,3 +1,4 @@
+from Tools.scripts.highlight import default_ansi
 from django.db import models
 
 import user_management.models
@@ -141,7 +142,7 @@ class PaymentType(models.Model):
 class Sadaka(models.Model):
     church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
     bahasha = models.ForeignKey(CardsNumber, on_delete=models.CASCADE, null=True, blank=True)
-    sadaka_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    sadaka_amount = models.DecimalField(max_digits=20, decimal_places=2)
     collected_by = models.CharField(max_length=255)
     payment_type = models.ForeignKey(PaymentType, on_delete=models.CASCADE)
     date = models.DateField()
@@ -157,7 +158,7 @@ class Sadaka(models.Model):
 class Zaka(models.Model):
     church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
     bahasha = models.ForeignKey(CardsNumber, on_delete=models.CASCADE, null=True, blank=True)
-    zaka_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    zaka_amount = models.DecimalField(max_digits=20, decimal_places=2)
     payment_type = models.ForeignKey(PaymentType, on_delete=models.CASCADE)
     collected_by = models.CharField(max_length=255)
     date = models.DateField()
@@ -172,7 +173,7 @@ class Zaka(models.Model):
 
 class PaymentTypeTransfer(models.Model):
     payment_type = models.ForeignKey(PaymentType, on_delete=models.CASCADE, related_name='transfers', help_text='Link to the payment type used for the transfer.')
-    amount = models.DecimalField(max_digits=10, decimal_places=4)
+    amount = models.DecimalField(max_digits=20, decimal_places=4)
     church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
     transfer_date = models.DateTimeField(auto_now_add=True)
     created_by = models.CharField(max_length=255)
@@ -183,7 +184,7 @@ class PaymentTypeTransfer(models.Model):
 
 
 class Revenue(models.Model):
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    amount = models.DecimalField(max_digits=20, decimal_places=2)
     church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
     revenue_type = models.CharField(max_length=100)
     date_received = models.DateField()
@@ -200,6 +201,7 @@ class Revenue(models.Model):
 class ExpenseCategory(models.Model):
     church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
     category_name = models.CharField(max_length=255)
+    budget = models.DecimalField(max_digits=20, decimal_places=4, default=100000.00)
     inserted_by = models.CharField(max_length=255)
     inserted_at = models.DateTimeField(auto_now_add=True)
     updated_by = models.CharField(max_length=255)
@@ -211,7 +213,7 @@ class ExpenseCategory(models.Model):
 
 class Expense(models.Model):
     church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    amount = models.DecimalField(max_digits=20, decimal_places=4)
     date = models.DateField()
     spent_by = models.CharField(max_length=255)
     expense_category = models.ForeignKey(ExpenseCategory, on_delete=models.CASCADE)
@@ -221,17 +223,17 @@ class Expense(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Expense: {self.amount} - {self.expense_category.category_name}"
+        return f"Expense: {self.amount} - {self.spent_by}"
 
 
 
 class Mchango(models.Model):
     church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
     mchango_name = models.CharField(max_length=255)
-    mchango_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    mchango_amount = models.DecimalField(max_digits=20, decimal_places=2)
     mchango_description = models.TextField()
-    target_amount = models.DecimalField(max_digits=10, decimal_places=2)
-    collected_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    target_amount = models.DecimalField(max_digits=20, decimal_places=2)
+    collected_amount = models.DecimalField(max_digits=20, decimal_places=2, default=0)
     status = models.BooleanField(default=True)
     date = models.DateField()
     inserted_by = models.CharField(max_length=255)
@@ -244,7 +246,7 @@ class Mchango(models.Model):
 
 class MchangoPayments(models.Model):
     mchango = models.ForeignKey(Mchango, on_delete=models.CASCADE)
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    amount = models.DecimalField(max_digits=20, decimal_places=2)
     mhumini = models.ForeignKey(Wahumini, on_delete=models.CASCADE, null=True, blank=True)
     inserted_by = models.CharField(max_length=255)
     inserted_at = models.DateTimeField(auto_now_add=True)
@@ -256,8 +258,8 @@ class Ahadi(models.Model):
     church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
     wahumini = models.ForeignKey('Wahumini', on_delete=models.CASCADE, related_name='ahadi')
     mchango = models.ForeignKey('Mchango', on_delete=models.CASCADE, related_name='ahadi', null=True, blank=True )
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
-    paid_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    amount = models.DecimalField(max_digits=20, decimal_places=2)
+    paid_amount = models.DecimalField(max_digits=20, decimal_places=2)
     date_pledged = models.DateField()
     due_date = models.DateField()
     created_by = models.CharField(max_length=255)
