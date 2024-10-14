@@ -1,4 +1,3 @@
-from Tools.scripts.highlight import default_ansi
 from django.db import models
 
 import user_management.models
