@@ -57,17 +57,83 @@ class ServiceProviderRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     permission_classes = [AllowAny]
 
 
+from datetime import datetime
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.views import APIView
+
 
 class PackageListCreateView(ListCreateAPIView):
-    queryset = Package.objects.all()
     serializer_class = PackageSerializer
     permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        # Get packages for a specific church_id, with filter if church_id is passed as a query parameter
+        church_id = self.request.query_params.get('church_id')
+        queryset = Package.objects.all()
+
+        if church_id:
+            queryset = queryset.filter(church_id=church_id)
+
+        # Deactivate expired active packages
+        for package in queryset.filter(is_active=True):
+            if package.package_end_date < datetime.now():
+                package.is_active = False
+                package.save()
+                # TODO: Add logic here to notify the user the package has expired or about to expire
+                print(f"TODO: Notify that package {package.id} has expired.")
+            elif (package.package_end_date - datetime.now()).days <= 7:  # Example threshold of 7 days
+                # TODO: Notify user about package ending soon
+                print(f"TODO: Notify that package {package.id} is about to expire.")
+
+        return queryset
+
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+        church_id = request.data.get('church')
+
+        if church_id:
+            # Get all packages for the same church that are still active
+            active_packages = Package.objects.filter(church_id=church_id, is_active=True)
+
+            for package in active_packages:
+                if package.package_end_date < datetime.now():
+                    package.is_active = False
+                    package.save()
+                    # TODO: Notify user that the package has expired
+                    print(f"TODO: Notify that package {package.id} has expired.")
+                elif (package.package_end_date - datetime.now()).days <= 7:  # Threshold of 7 days
+                    # TODO: Notify user about package ending soon
+                    print(f"TODO: Notify that package {package.id} is about to expire.")
+
+        return response
 
 
 class PackageRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
-    queryset = Package.objects.all()
     serializer_class = PackageSerializer
     permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        # Get packages for a specific church_id, with filter if church_id is passed as a query parameter
+        church_id = self.request.query_params.get('church_id')
+        queryset = Package.objects.all()
+
+        if church_id:
+            queryset = queryset.filter(church_id=church_id)
+
+        # Deactivate expired active packages
+        for package in queryset.filter(is_active=True):
+            if package.package_end_date < datetime.now():
+                package.is_active = False
+                package.save()
+                # TODO: Add logic here to notify the user the package has expired or about to expire
+                print(f"TODO: Notify that package {package.id} has expired.")
+            elif (package.package_end_date - datetime.now()).days <= 7:  # Example threshold of 7 days
+                # TODO: Notify user about package ending soon
+                print(f"TODO: Notify that package {package.id} is about to expire.")
+
+        return queryset
+
 
 class KandaViewListCreate(ListCreateAPIView):
     queryset = Kanda.objects.all()
