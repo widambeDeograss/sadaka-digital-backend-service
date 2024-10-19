@@ -2,6 +2,7 @@ from django.db import transaction
 from django.http import Http404
 from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
+from rest_framework import status
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView, RetrieveAPIView
 from rest_framework.permissions import AllowAny, AllowAny
 from rest_framework.response import Response
@@ -46,21 +47,43 @@ class ServiceProviderByAdminView(RetrieveAPIView):
     def get_object(self):
         sp_admin_id = self.kwargs.get('sp_admin_id')
         try:
-            return ServiceProvider.objects.get(sp_admin=sp_admin_id)
+            service_provider = ServiceProvider.objects.get(sp_admin=sp_admin_id)
         except ServiceProvider.DoesNotExist:
             raise Http404("Service Provider not found")
+
+        # Get the active package for the service provider
+        active_package = None
+        try:
+            active_package = Package.objects.get(church=service_provider, is_active=True)
+        except Package.DoesNotExist:
+            active_package = None  # No active package found
+
+        # Return both the service provider and active package
+        return {
+            "service_provider": service_provider,
+            "active_package": active_package,
+        }
+
+    def get(self, request, *args, **kwargs):
+        obj = self.get_object()
+
+        # Serialize the service provider data
+        service_provider_data = self.get_serializer(obj['service_provider']).data
+
+        # Prepare the response
+        response_data = {
+            "service_provider": service_provider_data,
+            "active_package": obj['active_package'] if obj['active_package'] is None else PackageSerializer(
+                obj['active_package']).data
+        }
+
+        return Response(response_data, status=status.HTTP_200_OK)
 
 
 class ServiceProviderRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     queryset = ServiceProvider.objects.all()
     serializer_class = ServiceProviderSerializer
     permission_classes = [AllowAny]
-
-
-from datetime import datetime
-from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.views import APIView
 
 
 class PackageListCreateView(ListCreateAPIView):
@@ -76,63 +99,64 @@ class PackageListCreateView(ListCreateAPIView):
             queryset = queryset.filter(church_id=church_id)
 
         # Deactivate expired active packages
+        current_time = timezone.now()  # Use timezone-aware datetime
         for package in queryset.filter(is_active=True):
-            if package.package_end_date < datetime.now():
+            if package.package_end_date < current_time:
                 package.is_active = False
                 package.save()
                 # TODO: Add logic here to notify the user the package has expired or about to expire
                 print(f"TODO: Notify that package {package.id} has expired.")
-            elif (package.package_end_date - datetime.now()).days <= 7:  # Example threshold of 7 days
+            elif (package.package_end_date - current_time).days <= 7:  # Example threshold of 7 days
                 # TODO: Notify user about package ending soon
                 print(f"TODO: Notify that package {package.id} is about to expire.")
 
         return queryset
 
-    def create(self, request, *args, **kwargs):
-        response = super().create(request, *args, **kwargs)
-        church_id = request.data.get('church')
-
-        if church_id:
-            # Get all packages for the same church that are still active
-            active_packages = Package.objects.filter(church_id=church_id, is_active=True)
-
-            for package in active_packages:
-                if package.package_end_date < datetime.now():
-                    package.is_active = False
-                    package.save()
-                    # TODO: Notify user that the package has expired
-                    print(f"TODO: Notify that package {package.id} has expired.")
-                elif (package.package_end_date - datetime.now()).days <= 7:  # Threshold of 7 days
-                    # TODO: Notify user about package ending soon
-                    print(f"TODO: Notify that package {package.id} is about to expire.")
-
-        return response
+    # def create(self, request, *args, **kwargs):
+    #     response = super().create(request, *args, **kwargs)
+    #     church_id = request.data.get('church')
+    #
+    #     if church_id:
+    #         # Get all packages for the same church that are still active
+    #         active_packages = Package.objects.filter(church_id=church_id, is_active=True)
+    #
+    #         for package in active_packages:
+    #             if package.package_end_date < datetime.now():
+    #                 package.is_active = False
+    #                 package.save()
+    #                 # TODO: Notify user that the package has expired
+    #                 print(f"TODO: Notify that package {package.id} has expired.")
+    #             elif (package.package_end_date - datetime.now()).days <= 7:  # Threshold of 7 days
+    #                 # TODO: Notify user about package ending soon
+    #                 print(f"TODO: Notify that package {package.id} is about to expire.")
+    #
+    #     return response
 
 
 class PackageRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     serializer_class = PackageSerializer
     permission_classes = [AllowAny]
 
-    def get_queryset(self):
-        # Get packages for a specific church_id, with filter if church_id is passed as a query parameter
-        church_id = self.request.query_params.get('church_id')
-        queryset = Package.objects.all()
-
-        if church_id:
-            queryset = queryset.filter(church_id=church_id)
-
-        # Deactivate expired active packages
-        for package in queryset.filter(is_active=True):
-            if package.package_end_date < datetime.now():
-                package.is_active = False
-                package.save()
-                # TODO: Add logic here to notify the user the package has expired or about to expire
-                print(f"TODO: Notify that package {package.id} has expired.")
-            elif (package.package_end_date - datetime.now()).days <= 7:  # Example threshold of 7 days
-                # TODO: Notify user about package ending soon
-                print(f"TODO: Notify that package {package.id} is about to expire.")
-
-        return queryset
+    # def get_queryset(self):
+    #     # Get packages for a specific church_id, with filter if church_id is passed as a query parameter
+    #     church_id = self.request.query_params.get('church_id')
+    #     queryset = Package.objects.all()
+    #
+    #     if church_id:
+    #         queryset = queryset.filter(church_id=church_id)
+    #
+    #     # Deactivate expired active packages
+    #     for package in queryset.filter(is_active=True):
+    #         if package.package_end_date < datetime.now():
+    #             package.is_active = False
+    #             package.save()
+    #             # TODO: Add logic here to notify the user the package has expired or about to expire
+    #             print(f"TODO: Notify that package {package.id} has expired.")
+    #         elif (package.package_end_date - datetime.now()).days <= 7:  # Example threshold of 7 days
+    #             # TODO: Notify user about package ending soon
+    #             print(f"TODO: Notify that package {package.id} is about to expire.")
+    #
+    #     return queryset
 
 
 class KandaViewListCreate(ListCreateAPIView):

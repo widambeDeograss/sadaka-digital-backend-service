@@ -21,6 +21,13 @@ class ServiceProviderSerializer(serializers.ModelSerializer):
 
 
 class PackageSerializer(serializers.ModelSerializer):
+    package = serializers.PrimaryKeyRelatedField(queryset=SystemPackage.objects.all())
+    package_details = SystemPackageSerializer(source='package',read_only=True)
+    church = serializers.PrimaryKeyRelatedField(
+        queryset=ServiceProvider.objects.all(),
+        required=True
+    )
+    church_details = ServiceProviderSerializer(source='church', read_only=True)
     class Meta:
         model = Package
         fields = "__all__"

@@ -1,5 +1,6 @@
 from django.urls import path
 from .views import *
+from .operations.zaka_sadaka import ZakaMonthlyTotalsView, SadakaWeeklyView
 
 app_name = 'service_providers'
 
@@ -45,4 +46,6 @@ urlpatterns = [
     path('jumuiya-list-create', JumuiyaViewListCreate.as_view(), name="jumuiya_list_create"),
     path('jumuiya-retrieve-update-destroy/<int:pk>', JumuiyaViewUpdateDistrol.as_view(),
          name="jumuiyaa_retrieve_update_destroy"),
+    path('zaka/monthly-totals/', ZakaMonthlyTotalsView.as_view(), name='zaka-monthly-totals'),
+    path('sadaka/monthly-totals/', SadakaWeeklyView.as_view(), name='sadaka-monthly-totals'),
 ]
