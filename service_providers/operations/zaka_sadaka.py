@@ -14,7 +14,7 @@ class ZakaMonthlyTotalsView(APIView):
     def get(self, request, *args, **kwargs):
         church_id = request.query_params.get('church_id')
         current_year = timezone.now().year
-        all_months = [datetime(current_year, m, 1) for m in range(1, 13)]  # List of all months in the current year
+        all_months = [datetime(current_year, m, 1) for m in range(1, 13)]
         final_result = []
 
         if not church_id:
@@ -107,7 +107,7 @@ class SadakaWeeklyView(APIView):
             return Response({"detail": "church_id is required."}, status=400)
 
         # Get all card numbers (bahasha) associated with the church
-        card_numbers = CardsNumber.objects.filter(mhumini__church_id=church_id)
+        card_numbers = CardsNumber.objects.filter(mhumini__church_id=church_id, bahasha_type="sadaka" )
 
         # Fetch sadaka records filtered by church_id and current month
         queryset = Sadaka.objects.filter(
@@ -131,11 +131,13 @@ class SadakaWeeklyView(APIView):
 
             # Loop through each week and calculate the total sadaka for this card
             for week_start, week_end in weeks:
+
                 total_sadaka = queryset.filter(
-                    bahasha_id=card.id,  # Match the current card number
+                    bahasha=card.id,
                     date__gte=week_start,
                     date__lte=week_end
                 ).aggregate(total_sadaka=Sum('sadaka_amount'))['total_sadaka'] or 0
+
 
                 # Add the week's sadaka data
                 card_data["weekly_sadaka"].append({

@@ -62,6 +62,12 @@ class JumuiyaSerializer(serializers.ModelSerializer):
 
 
 class WahuminiSerializer(serializers.ModelSerializer):
+    jumuiya = serializers.PrimaryKeyRelatedField(
+        queryset=Jumuiya.objects.all(),
+        allow_null=True,
+        required=False
+    )
+    jumuiya_details = KandaSerializer(source='jumuiya', read_only=True)
     class Meta:
         model = Wahumini
         fields = "__all__"

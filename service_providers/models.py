@@ -47,7 +47,7 @@ class ServiceProvider(models.Model):
     church_phone = models.CharField(max_length=255)
     church_category = models.CharField(max_length=255)
     church_status = models.BooleanField(default=True)
-    sp_admin = models.ForeignKey(user_management.models.User, on_delete=models.CASCADE, null=True, blank=True, unique=True)
+    sp_admin = models.OneToOneField(user_management.models.User, on_delete=models.CASCADE, null=True, blank=True)
     inserted_by = models.CharField(max_length=255)
     inserted_at = models.DateTimeField(auto_now_add=True)
     updated_by = models.CharField(max_length=255)
@@ -158,7 +158,7 @@ class CardsNumber(models.Model):
 
 
 class PaymentType(models.Model):
-    name = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100)
     church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
     description = models.TextField(null=True, blank=True)
     created_by = models.CharField(max_length=255)
