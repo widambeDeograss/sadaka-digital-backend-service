@@ -13,36 +13,41 @@ class ZakaMonthlyTotalsView(APIView):
 
     def get(self, request, *args, **kwargs):
         church_id = request.query_params.get('church_id')
-        current_year = timezone.now().year
-        all_months = [datetime(current_year, m, 1) for m in range(1, 13)]
+        year = request.query_params.get('year', timezone.now().year)
+
+        try:
+            year = int(year)
+        except ValueError:
+            return Response({"detail": "Year must be a valid integer."}, status=400)
+
+        all_months = [datetime(year, m, 1) for m in range(1, 12)]
         final_result = []
 
         if not church_id:
             return Response({"detail": "church_id is required."}, status=400)
 
-        # Fetch zaka records filtered by church_id and for the current year
-        queryset = Zaka.objects.filter(church_id=church_id, date__year=current_year)
+        queryset = Zaka.objects.filter(church_id=church_id, date__year=year)
 
-        # Group by card number and month, sum the zaka_amount, and include mhumini names
         aggregated_data = (
             queryset
             .values(
-                'bahasha__card_no',  # Card number
-                'bahasha__mhumini__first_name',  # Member's first name
-                'bahasha__mhumini__last_name'  # Member's last name
+                'bahasha__card_no',
+                'bahasha__mhumini__first_name',
+                'bahasha__mhumini__last_name' ,
+                'bahasha__mhumini__jumuiya__name'
             )
             .annotate(
-                month=TruncMonth('date'),  # Extract the month from the date
-                total_amount=Sum('zaka_amount')  # Sum the zaka amount per month
+                month=TruncMonth('date'),
+                total_amount=Sum('zaka_amount')
             )
             .values(
                 'bahasha__card_no', 'bahasha__mhumini__first_name',
-                'bahasha__mhumini__last_name', 'month', 'total_amount'
+                'bahasha__mhumini__last_name','bahasha__mhumini__jumuiya__name',
+                'bahasha__mhumini__jumuiya__kanda__name','month', 'total_amount'
             )
-            .order_by('bahasha__card_no', 'month')  # Order by card number and month
+            .order_by('bahasha__card_no', 'month')
         )
 
-        # Initialize card_data to store totals by card number and month
         card_data = {}
 
         for item in aggregated_data:
@@ -50,6 +55,8 @@ class ZakaMonthlyTotalsView(APIView):
             first_name = item['bahasha__mhumini__first_name']
             last_name = item['bahasha__mhumini__last_name']
             member_name = f"{first_name} {last_name}"
+            jumuiya_name = item['bahasha__mhumini__jumuiya__name']
+            kanda_name = item['bahasha__mhumini__jumuiya__kanda__name']
             month = item['month']
             total_amount = item['total_amount']
 
@@ -57,6 +64,8 @@ class ZakaMonthlyTotalsView(APIView):
             if card_no not in card_data:
                 card_data[card_no] = {
                     'member_name': member_name,
+                    'jumuiya_name':jumuiya_name,
+                    'kanda_name': kanda_name,
                     'totals_by_month': {month.strftime('%Y-%m'): total_amount}
                 }
 
@@ -68,6 +77,8 @@ class ZakaMonthlyTotalsView(APIView):
             result = {
                 'card_no': card_no,
                 'member_name': data['member_name'],
+                'jumuiya_name':data['jumuiya_name'],
+                'kanda_name':data['kanda_name'],
                 'months': []
             }
             for month in all_months:
@@ -86,38 +97,46 @@ class SadakaWeeklyView(APIView):
     permission_classes = [AllowAny]
 
     def get_week_boundaries(self, year, month):
-        """Divide the current month into four weekly periods."""
+        """Divide the month into four weekly periods."""
         first_day = datetime(year, month, 1)
+        last_day = (datetime(year, month + 1, 1) - timedelta(days=1)) if month < 12 else datetime(year, 12, 31)
         weeks = []
-        for i in range(4):
-            week_start = first_day + timedelta(days=i * 7)
-            week_end = week_start + timedelta(days=6)
-            if week_end.month != month:
-                week_end = datetime(year, month + 1, 1) - timedelta(days=1)  # Ensure last week doesn't go over the month
-            weeks.append((week_start, week_end))
+
+        current_start = first_day
+        while current_start <= last_day:
+            current_end = current_start + timedelta(days=6)
+            if current_end > last_day:
+                current_end = last_day  # End date of the last week in the month
+            weeks.append((current_start, current_end))
+            current_start = current_end + timedelta(days=1)
+
         return weeks
 
     def get(self, request, *args, **kwargs):
         church_id = request.query_params.get('church_id')
+        year = request.query_params.get('year')
+        month = request.query_params.get('month')
+
+        # Default to the current year and month if not provided
         current_date = timezone.now()
-        current_year = current_date.year
-        current_month = current_date.month
+        year = int(year) if year else current_date.year
+        month = int(month) if month else current_date.month
 
         if not church_id:
             return Response({"detail": "church_id is required."}, status=400)
 
         # Get all card numbers (bahasha) associated with the church
-        card_numbers = CardsNumber.objects.filter(mhumini__church_id=church_id, bahasha_type="sadaka" )
+        card_numbers = CardsNumber.objects.filter(mhumini__church_id=church_id, bahasha_type="sadaka")
 
-        # Fetch sadaka records filtered by church_id and current month
+        # Fetch sadaka records filtered by church_id, year, and month
         queryset = Sadaka.objects.filter(
             church_id=church_id,
-            date__year=current_year,
-            date__month=current_month
+            date__year=year,
+            date__month=month
         )
 
-        # Get four-week boundaries for the current month
-        weeks = self.get_week_boundaries(current_year, current_month)
+        # Get weekly boundaries for the specified month and year
+        weeks = self.get_week_boundaries(year, month)
 
         # Prepare the result for each card number with sadaka amounts for each week
         data = []
@@ -129,25 +148,22 @@ class SadakaWeeklyView(APIView):
                 "weekly_sadaka": []
             }
 
-            # Loop through each week and calculate the total sadaka for this card
+            # Calculate total sadaka for each week
             for week_start, week_end in weeks:
-
                 total_sadaka = queryset.filter(
                     bahasha=card.id,
                     date__gte=week_start,
                     date__lte=week_end
                 ).aggregate(total_sadaka=Sum('sadaka_amount'))['total_sadaka'] or 0
 
-
-                # Add the week's sadaka data
+                # Append weekly sadaka data
                 card_data["weekly_sadaka"].append({
                     "week_start": week_start.date(),
                     "week_end": week_end.date(),
                     "total_sadaka": total_sadaka
                 })
 
-            # Add this card's data to the final result
+            # Add each card's data to the final result
             data.append(card_data)
 
         return Response(data)
-

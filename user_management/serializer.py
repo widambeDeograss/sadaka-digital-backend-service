@@ -9,7 +9,7 @@ from .models import *
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        depth = 2
+        # depth = 2
         fields = [
             'id',
             'username',

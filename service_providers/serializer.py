@@ -1,4 +1,7 @@
+from django.db import transaction
 from rest_framework import serializers
+
+from user_management.serializer import UserSerializer
 from .models import *
 
 
@@ -18,6 +21,83 @@ class ServiceProviderSerializer(serializers.ModelSerializer):
     class Meta:
         model = ServiceProvider
         fields = "__all__"
+
+
+class SpManagerSerializer(serializers.ModelSerializer):
+    sp_manager = UserSerializer()
+
+    class Meta:
+        model = SpManagers
+        fields = ['id', 'sp_manager', 'church', 'inserted_by', 'deleted']
+
+    def validate(self, data):
+        # Validate that the user isn't already a manager
+        if 'sp_manager' in data and SpManagers.objects.filter(
+                sp_manager__username=data['sp_manager']['username'],
+                deleted=False
+        ).exists():
+            raise serializers.ValidationError({
+                "sp_manager": "This user is already a manager of another church"
+            })
+
+        # Validate that the church doesn't exceed maximum managers (optional)
+        if 'church' in data:
+            existing_managers = SpManagers.objects.filter(
+                church=data['church'],
+                deleted=False
+            ).count()
+            max_managers = 5
+            if existing_managers >= max_managers:
+                raise serializers.ValidationError({
+                    "church": f"This church already has the maximum number of managers ({max_managers})"
+                })
+
+        return data
+
+    @transaction.atomic
+    def create(self, validated_data):
+        try:
+            print("========================================================")
+            user_data = validated_data.pop('sp_manager')
+
+            # Create the user with proper role
+            user = UserSerializer().create(user_data)
+
+
+            sp_manager = SpManagers.objects.create(
+                sp_manager=user,
+                **validated_data
+            )
+
+            return sp_manager
+
+        except Exception as e:
+            # Log the error if you have logging configured
+            raise serializers.ValidationError({
+                "error": f"Failed to create manager: {str(e)}"
+            })
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        if 'sp_manager' in validated_data:
+            user_data = validated_data.pop('sp_manager')
+            user = instance.sp_manager
+
+            # Update user fields
+            for attr, value in user_data.items():
+                if attr != 'password':
+                    setattr(user, attr, value)
+                else:
+                    user.set_password(value)
+
+            user.save()
+
+        # Update SpManager fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
+        return instance
 
 
 class PackageSerializer(serializers.ModelSerializer):
@@ -91,6 +171,8 @@ class PaymentTypeSerializer(serializers.ModelSerializer):
 class SadakaSerializer(serializers.ModelSerializer):
     bahasha = serializers.PrimaryKeyRelatedField(queryset=CardsNumber.objects.all(), required=False, allow_null=True)
     bahasha_details = CardsNumberSerializer(source='bahasha', read_only=True)
+    payment_type = serializers.PrimaryKeyRelatedField(queryset=PaymentType.objects.all(), required=False, allow_null=True)
+    payment_type_details = PaymentTypeSerializer(source='payment_type', read_only=True)
     class Meta:
         model = Sadaka
         fields = "__all__"
@@ -100,6 +182,8 @@ class SadakaSerializer(serializers.ModelSerializer):
 class ZakaSerializer(serializers.ModelSerializer):
     bahasha = serializers.PrimaryKeyRelatedField(queryset=CardsNumber.objects.all(), required=False, allow_null=True)
     bahasha_details = CardsNumberSerializer(source='bahasha', read_only=True)
+    payment_type = serializers.PrimaryKeyRelatedField(queryset=PaymentType.objects.all(), required=False, allow_null=True)
+    payment_type_details = PaymentTypeSerializer(source='payment_type', read_only=True)
     class Meta:
         model = Zaka
         fields = "__all__"

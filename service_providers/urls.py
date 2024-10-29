@@ -48,4 +48,6 @@ urlpatterns = [
          name="jumuiyaa_retrieve_update_destroy"),
     path('zaka/monthly-totals/', ZakaMonthlyTotalsView.as_view(), name='zaka-monthly-totals'),
     path('sadaka/monthly-totals/', SadakaWeeklyView.as_view(), name='sadaka-monthly-totals'),
+    path('sp-managers/', SpManagerListView.as_view({'get': 'list', 'post':'create'}), name='spmanager-list'),
+    path('sp-managers/<int:pk>/', SpManagerDetailView.as_view(), name='spmanager-detail'),
 ]

@@ -3,7 +3,7 @@ from .models import (
     CardsNumber, Mchango, PaymentType, ServiceProvider,
     SystemPackage, Zaka, Ahadi, Sadaka, Revenue,
     PaymentTypeTransfer, ExpenseCategory, Expense,
-    SystemOffer, Package, Wahumini, Jumuiya, Kanda
+    SystemOffer, Package, Wahumini, Jumuiya, Kanda,MchangoPayments
 )
 
 # Register all models

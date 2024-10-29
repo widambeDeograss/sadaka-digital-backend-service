@@ -1,5 +1,4 @@
 from django.db import models
-
 import user_management.models
 
 
@@ -59,6 +58,31 @@ class ServiceProvider(models.Model):
     
     class Meta:
         db_table = 'service_provider_table'
+
+class SpManagers(models.Model):
+    sp_manager = models.ForeignKey(user_management.models.User, on_delete=models.CASCADE)
+    church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
+    inserted_by = models.CharField(max_length=255)
+    inserted_at = models.DateTimeField(auto_now_add=True)
+    updated_by = models.CharField(max_length=255)
+    deleted = models.BooleanField(default=False)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['sp_manager', 'church'],
+                name='unique_user_church'
+            ),
+            models.UniqueConstraint(
+                fields=['sp_manager'],
+                name='unique_user_only_one_church'
+            )
+        ]
+
+    def __str__(self):
+        return f'{self.sp_manager.username} - {self.church.name}'
+
 
 
 class Package(models.Model):

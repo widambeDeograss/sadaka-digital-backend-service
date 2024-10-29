@@ -2,7 +2,7 @@ from django.db import transaction
 from django.http import Http404
 from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
-from rest_framework import status
+from rest_framework import status, viewsets
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView, RetrieveAPIView
 from rest_framework.permissions import AllowAny, AllowAny
 from rest_framework.response import Response
@@ -158,11 +158,31 @@ class PackageRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     #
     #     return queryset
 
+class SpManagerListView(viewsets.ModelViewSet):
+    queryset = SpManagers.objects.filter(deleted=False)
+    serializer_class = SpManagerSerializer
+    permission_classes = [AllowAny]
+
+    def perform_create(self, serializer):
+        serializer.save(inserted_by=self.request.user)
+
+    def get_queryset(self):
+        church_id = self.request.query_params.get('church_id')
+        if church_id:
+            return SpManagers.objects.filter(church=church_id)
+        return SpManagers.objects.all()
+
+class SpManagerDetailView(RetrieveUpdateDestroyAPIView):
+    queryset = SpManagers.objects.all()
+    serializer_class = SpManagerSerializer
+    permission_classes = [AllowAny]
+
 
 class KandaViewListCreate(ListCreateAPIView):
     queryset = Kanda.objects.all()
     serializer_class = KandaSerializer
     permission_classes = [AllowAny]
+
 
     def get_queryset(self):
         church_id = self.request.query_params.get('church_id')
@@ -256,11 +276,13 @@ class SadakaListCreateView(ListCreateAPIView):
 
     def get_queryset(self):
         church_id = self.request.query_params.get('church_id')
-
         filter_type = self.request.query_params.get('filter')
-
+        year = self.request.query_params.get('year',
+                                             timezone.now().year)
         if church_id:
             queryset = Sadaka.objects.filter(church_id=church_id)
+
+            queryset = queryset.filter(inserted_at__year=year)
 
             if filter_type == 'today':
                 today = timezone.now().date()
@@ -271,6 +293,7 @@ class SadakaListCreateView(ListCreateAPIView):
             return queryset
         else:
             return Sadaka.objects.none()
+
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -291,11 +314,13 @@ class ZakaListCreateView(ListCreateAPIView):
 
     def get_queryset(self):
         church_id = self.request.query_params.get('church_id')
-
         filter_type = self.request.query_params.get('filter')
-
+        year = self.request.query_params.get('year',
+                                             timezone.now().year)
         if church_id:
             queryset = Zaka.objects.filter(church_id=church_id)
+
+            queryset = queryset.filter(inserted_at__year=year)
 
             if filter_type == 'today':
                 today = timezone.now().date()
@@ -306,6 +331,7 @@ class ZakaListCreateView(ListCreateAPIView):
             return queryset
         else:
             return Zaka.objects.none()
+
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
