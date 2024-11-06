@@ -302,6 +302,7 @@ class Mchango(models.Model):
 class MchangoPayments(models.Model):
     mchango = models.ForeignKey(Mchango, on_delete=models.CASCADE)
     amount = models.DecimalField(max_digits=20, decimal_places=2)
+    payment_type = models.ForeignKey(PaymentType, on_delete=models.CASCADE, default=1)
     mhumini = models.ForeignKey(Wahumini, on_delete=models.CASCADE, null=True, blank=True)
     inserted_by = models.CharField(max_length=255)
     inserted_at = models.DateTimeField(auto_now_add=True)
@@ -324,3 +325,14 @@ class Ahadi(models.Model):
 
     def __str__(self):
         return f"Ahadi by {self.wahumini} for {self.mchango} - {self.amount}"
+
+
+class AhadiPayments(models.Model):
+    ahadi = models.ForeignKey(Ahadi, on_delete=models.CASCADE)
+    payment_type = models.ForeignKey(PaymentType, on_delete=models.CASCADE, default=1)
+    amount = models.DecimalField(max_digits=20, decimal_places=2)
+    mhumini = models.ForeignKey(Wahumini, on_delete=models.CASCADE, null=True, blank=True)
+    inserted_by = models.CharField(max_length=255)
+    inserted_at = models.DateTimeField(auto_now_add=True)
+    updated_by = models.CharField(max_length=255)
+    updated_at = models.DateTimeField(auto_now=True)

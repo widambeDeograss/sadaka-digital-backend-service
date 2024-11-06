@@ -163,9 +163,6 @@ class SpManagerListView(viewsets.ModelViewSet):
     serializer_class = SpManagerSerializer
     permission_classes = [AllowAny]
 
-    def perform_create(self, serializer):
-        serializer.save(inserted_by=self.request.user)
-
     def get_queryset(self):
         church_id = self.request.query_params.get('church_id')
         if church_id:
@@ -477,9 +474,23 @@ class AhadiListCreateView(ListCreateAPIView):
 
     def get_queryset(self):
         church_id = self.request.query_params.get('church_id')
+        filter_type = self.request.query_params.get('filter')
+        year = self.request.query_params.get('year',
+                                             timezone.now().year)
         if church_id:
-            return Ahadi.objects.filter(church=church_id)
-        return Ahadi.objects.all()
+            queryset = Ahadi.objects.filter(church_id=church_id)
+
+            queryset = queryset.filter(created_at__year=year)
+
+            if filter_type == 'today':
+                today = timezone.now().date()
+                queryset = queryset.filter(created_at__date=today)
+            else:
+                queryset = queryset.order_by('-created_at')
+
+            return queryset
+        else:
+            return Ahadi.objects.none()
 
 
 class AhadiRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
@@ -488,4 +499,25 @@ class AhadiRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     permission_classes = [AllowAny]
 
 
+class AhadiPaymentListCreateView(ListCreateAPIView):
+    queryset = AhadiPayments.objects.all()
+    serializer_class = AhadiPaymentSerializer
+    permission_classes = [AllowAny]
+
+    @transaction.atomic
+    def perform_create(self, serializer):
+
+        # Save the Ahadi payment instance
+        ahadi_payment = serializer.save()
+
+        try:
+            # Lock the Mchango instance to prevent race conditions
+            ahadi = Ahadi.objects.select_for_update().get(id=ahadi_payment.ahadi.id)
+        except Ahadi.DoesNotExist:
+            # If the Mchango does not exist, rollback the transaction
+            raise serializers.ValidationError("Ahadi does not exist.")
+
+        # Update the collected_amount
+        ahadi.paid_amount += ahadi_payment.amount
+        ahadi.save()
 

@@ -24,26 +24,39 @@ class ServiceProviderSerializer(serializers.ModelSerializer):
 
 
 class SpManagerSerializer(serializers.ModelSerializer):
-    sp_manager = UserSerializer()
+    sp_manager = UserSerializer(read_only=True)
+    # sp_manager = serializers.CharField()
 
     class Meta:
         model = SpManagers
         fields = ['id', 'sp_manager', 'church', 'inserted_by', 'deleted']
+        extra_kwargs = {
+            'sp_manager': {
+                'validators': []
+            }
+        }
 
-    def validate(self, data):
-        # Validate that the user isn't already a manager
-        if 'sp_manager' in data and SpManagers.objects.filter(
-                sp_manager__username=data['sp_manager']['username'],
-                deleted=False
-        ).exists():
-            raise serializers.ValidationError({
-                "sp_manager": "This user is already a manager of another church"
-            })
+    @transaction.atomic
+    def create(self, validated_data):
+        try:
+            user_data = self.initial_data.get('sp_manager', None)
+            print("------------------------------------", user_data)
 
-        # Validate that the church doesn't exceed maximum managers (optional)
-        if 'church' in data:
+            # Create the user with the correct role
+            user = UserSerializer().create(user_data)
+
+            # Check if this user is already a manager for another church
+            if SpManagers.objects.filter(
+                    sp_manager=user,
+                    deleted=False
+            ).exists():
+                raise serializers.ValidationError({
+                    "sp_manager": "This user is already a manager of another church"
+                })
+
+            # Check if the church already has the maximum number of managers
             existing_managers = SpManagers.objects.filter(
-                church=data['church'],
+                church=validated_data['church'],
                 deleted=False
             ).count()
             max_managers = 5
@@ -52,18 +65,7 @@ class SpManagerSerializer(serializers.ModelSerializer):
                     "church": f"This church already has the maximum number of managers ({max_managers})"
                 })
 
-        return data
-
-    @transaction.atomic
-    def create(self, validated_data):
-        try:
-            print("========================================================")
-            user_data = validated_data.pop('sp_manager')
-
-            # Create the user with proper role
-            user = UserSerializer().create(user_data)
-
-
+            # Create the SpManager record
             sp_manager = SpManagers.objects.create(
                 sp_manager=user,
                 **validated_data
@@ -72,7 +74,6 @@ class SpManagerSerializer(serializers.ModelSerializer):
             return sp_manager
 
         except Exception as e:
-            # Log the error if you have logging configured
             raise serializers.ValidationError({
                 "error": f"Failed to create manager: {str(e)}"
             })
@@ -239,3 +240,25 @@ class AhadiSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ahadi
         fields = "__all__"
+
+
+class AhadiPaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AhadiPayments
+        fields = "__all__"
+        #
+        # @transaction.atomic
+        # def create(self, validated_data):
+        #     ahadi_id = self.initial_data.get('ahadi', None)
+        #     ahadi_payment_amount = self.initial_data('amount', None)
+        #     print("------------------------------------", ahadi_id)
+        #
+        #     ahadi =  Ahadi.objects.get(id=ahadi_id)
+        #     ahadi.paid_amount = ahadi.paid_amount + ahadi_payment_amount
+        #
+        #     ahadi_payment = AhadiPayments.objects.create(
+        #         **validated_data
+        #     )
+        #
+        #     return ahadi_payment
+

@@ -1,4 +1,9 @@
 from django.urls import path
+
+from .operations.ahadi_stats import AhadiStats
+from .operations.matumizi_stats import ExpenseStats
+from .operations.mchango_stats import MchangoStats
+from .operations.sadaka_zaka_stats import SadakaZakaStats
 from .views import *
 from .operations.zaka_sadaka import ZakaMonthlyTotalsView, SadakaWeeklyView
 
@@ -50,4 +55,10 @@ urlpatterns = [
     path('sadaka/monthly-totals/', SadakaWeeklyView.as_view(), name='sadaka-monthly-totals'),
     path('sp-managers/', SpManagerListView.as_view({'get': 'list', 'post':'create'}), name='spmanager-list'),
     path('sp-managers/<int:pk>/', SpManagerDetailView.as_view(), name='spmanager-detail'),
+    path('ahadi-payments', AhadiPaymentListCreateView.as_view(), name='ahadi-payments'),
+    path('sadaka-zaka-stats', SadakaZakaStats.as_view(), name='sadaka-stats'),
+    path('michango-stats', MchangoStats.as_view(), name='mchango-stats'),
+    path('ahadi-stats', AhadiStats.as_view(), name='ahadi-stats'),
+    path('matumizi-stats', ExpenseStats.as_view(), name='matumizi-stats'),
+
 ]
