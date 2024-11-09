@@ -373,9 +373,23 @@ class ExpenseListCreateView(ListCreateAPIView):
 
     def get_queryset(self):
         church_id = self.request.query_params.get('church_id')
+        filter_type = self.request.query_params.get('filter')
+        year = self.request.query_params.get('year',
+                                             timezone.now().year)
         if church_id:
-            return Expense.objects.filter(church=church_id)
-        return Expense.objects.all()
+            queryset = Expense.objects.filter(church_id=church_id)
+
+            queryset = queryset.filter(inserted_at__year=year)
+
+            if filter_type == 'today':
+                today = timezone.now().date()
+                queryset = queryset.filter(inserted_at__date=today)
+            else:
+                queryset = queryset.order_by('-inserted_at')
+
+            return queryset
+        else:
+            return Expense.objects.none()
 
 
 class ExpenseRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
