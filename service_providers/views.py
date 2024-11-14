@@ -6,6 +6,8 @@ from rest_framework import status, viewsets
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView, RetrieveAPIView
 from rest_framework.permissions import AllowAny, AllowAny
 from rest_framework.response import Response
+from rest_framework.views import APIView
+
 from .models import *
 from .serializer import *
 
@@ -360,6 +362,34 @@ class RevenueListCreateView(ListCreateAPIView):
     permission_classes = [AllowAny]
 
 
+class RevenueUpdateView(APIView):
+    permission_classes = [AllowAny]
+
+    def put(self, request, *args, **kwargs):
+        revenue_type_record = request.data.get("revenue_type_record")
+        revenue_type = request.data.get("revenue_type")
+
+        try:
+            # Find the Revenue object by `revenue_type_record` and `revenue_type`
+            revenue = Revenue.objects.get(
+                revenue_type_record=revenue_type_record,
+                revenue_type=revenue_type
+            )
+        except Revenue.DoesNotExist:
+            return Response(
+                {"error": "Revenue record not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Update the record with the new data
+        serializer = RevenueSerializer(revenue, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 class RevenueRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     queryset = Revenue.objects.all()
     serializer_class = RevenueSerializer
@@ -488,13 +518,15 @@ class AhadiListCreateView(ListCreateAPIView):
 
     def get_queryset(self):
         church_id = self.request.query_params.get('church_id')
+        mchango_id = self.request.query_params.get('mchango_id')
         filter_type = self.request.query_params.get('filter')
-        year = self.request.query_params.get('year',
-                                             timezone.now().year)
-        if church_id:
-            queryset = Ahadi.objects.filter(church_id=church_id)
+        year = self.request.query_params.get('year', timezone.now().year)
 
-            queryset = queryset.filter(created_at__year=year)
+        if church_id:
+            queryset = Ahadi.objects.filter(church_id=church_id, created_at__year=year)
+
+            if mchango_id:
+                queryset = queryset.filter(mchango=mchango_id)
 
             if filter_type == 'today':
                 today = timezone.now().date()
@@ -503,9 +535,8 @@ class AhadiListCreateView(ListCreateAPIView):
                 queryset = queryset.order_by('-created_at')
 
             return queryset
-        else:
-            return Ahadi.objects.none()
 
+        return Ahadi.objects.none()
 
 class AhadiRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     queryset = Ahadi.objects.all()
@@ -534,4 +565,6 @@ class AhadiPaymentListCreateView(ListCreateAPIView):
         # Update the collected_amount
         ahadi.paid_amount += ahadi_payment.amount
         ahadi.save()
+
+        return ahadi_payment
 

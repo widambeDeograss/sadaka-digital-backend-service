@@ -1,12 +1,13 @@
 from django.db.models import Sum, Value, DecimalField
-from django.db.models.functions import TruncMonth, Coalesce
+from django.db.models.functions import TruncMonth, Coalesce, ExtractMonth
 from django.utils import timezone
+from django.utils.timezone import now
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from datetime import datetime, timedelta
 from rest_framework.views import APIView
-
-from service_providers.models import MchangoPayments, Mchango
+from django.db import models
+from service_providers.models import MchangoPayments, Mchango, Ahadi
 
 
 class MchangoStats(APIView):
@@ -134,3 +135,53 @@ class MchangoStats(APIView):
             })
 
         return Response(mchango_data)
+
+
+class MchangoStatsView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, mchango_id, *args, **kwargs):
+        # Ensure the Mchango exists
+        try:
+            mchango = Mchango.objects.get(id=mchango_id)
+        except Mchango.DoesNotExist:
+            return Response({"detail": "Mchango not found."}, status=404)
+
+        # Process and return stats (e.g., collected amount, remaining amount)
+        stats = self.get_mchango_stats(mchango)
+
+        return Response(stats)
+
+    def get_mchango_stats(self, mchango):
+        # Collect the stats based on mchango's payments and other data
+        total_collected = mchango.mchangopayments_set.aggregate(total_collected=models.Sum('amount'))[
+                              'total_collected'] or 0
+        remaining_amount = mchango.target_amount - total_collected
+        # total_ahadi = mchango.ahadi_set.aggregate(total_ahadi=models.Sum('ahadi'))['total_ahadi'] or 0
+
+        # Assuming you want to calculate collected amount by month in the current year
+        monthly_collections = self.get_monthly_collections(mchango)
+
+        return {
+            "mchango_name": mchango.mchango_name,
+            "collected_amount": total_collected,
+            "remaining_amount": remaining_amount,
+            # "total_ahadi": total_ahadi,
+            "monthly_collections": monthly_collections,
+        }
+
+    def get_monthly_collections(self, mchango):
+        from django.db.models import Sum
+        from django.db.models.functions import TruncMonth
+        current_year = datetime.now().year
+        # Get payments aggregated by month for the current year
+        # payments = mchango.mchangopayments_set.filter(
+        #     inserted_at__year=current_year
+        # ).annotate(month=TruncMonth('inserted_at')).values('month').annotate(total=Sum('amount')).order_by('month')
+        #
+        # return [{"month": payment['month'].strftime('%B'), "total_collected": payment['total']} for payment in payments]
+        payments = mchango.mchangopayments_set.filter(
+            inserted_at__year=current_year
+        ).annotate(month=TruncMonth('inserted_at')).values('month').annotate(total=Sum('amount')).order_by('month')
+
+        return [{"month": payment['month'].strftime('%B'), "total_collected": payment['total']} for payment in payments]

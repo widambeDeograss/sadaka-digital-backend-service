@@ -138,6 +138,7 @@ class Wahumini(models.Model):
     user = models.OneToOneField('user_management.User', on_delete=models.SET_NULL, null=True, blank=True,
                              related_name='wahumini', help_text='Link to a user if the wahumini is a registered user.')
     church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
+    type = models.CharField(max_length=27, default="Mtu mzima" )
     jumuiya = models.ForeignKey(Jumuiya, on_delete=models.CASCADE, null=True, blank=True)
     first_name = models.CharField(max_length=100, null=True, blank=True,
                                   help_text='First name for non-registered wahumini.')
@@ -227,7 +228,8 @@ class Zaka(models.Model):
 
 
 class PaymentTypeTransfer(models.Model):
-    payment_type = models.ForeignKey(PaymentType, on_delete=models.CASCADE, related_name='transfers', help_text='Link to the payment type used for the transfer.')
+    from_payment_type = models.ForeignKey(PaymentType, on_delete=models.CASCADE, related_name='transfers_from')
+    to_payment_type = models.ForeignKey(PaymentType, on_delete=models.CASCADE, related_name='transfers_to')
     amount = models.DecimalField(max_digits=20, decimal_places=4)
     church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
     transfer_date = models.DateTimeField(auto_now_add=True)
@@ -235,13 +237,15 @@ class PaymentTypeTransfer(models.Model):
     updated_by = models.CharField(max_length=255)
 
     def __str__(self):
-        return f"Transfer of {self.amount} using {self.payment_type.name}"
+        return f"Transfer of {self.amount} to {self.to_payment_type.name}"
 
 
 class Revenue(models.Model):
     amount = models.DecimalField(max_digits=20, decimal_places=2)
     church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
+    payment_type = models.ForeignKey(PaymentType, on_delete=models.CASCADE)
     revenue_type = models.CharField(max_length=100)
+    revenue_type_record = models.CharField(max_length=100)
     date_received = models.DateField()
     created_by = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -336,3 +340,5 @@ class AhadiPayments(models.Model):
     inserted_at = models.DateTimeField(auto_now_add=True)
     updated_by = models.CharField(max_length=255)
     updated_at = models.DateTimeField(auto_now=True)
+
+

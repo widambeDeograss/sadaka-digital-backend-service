@@ -2,9 +2,11 @@ from django.urls import path
 
 from .operations.ahadi_stats import AhadiStats
 from .operations.matumizi_stats import ExpenseStats
-from .operations.mchango_stats import MchangoStats
-from .operations.sadaka_zaka_stats import SadakaZakaStats
+from .operations.mchango_stats import MchangoStats, MchangoStatsView
+from .operations.sadaka_zaka_stats import SadakaZakaStats, CheckZakaPresenceView
+from .operations.wahumini_stats import WahuminiStatsView
 from .views import *
+from .views import RevenueUpdateView
 from .operations.zaka_sadaka import ZakaMonthlyTotalsView, SadakaWeeklyView
 
 app_name = 'service_providers'
@@ -33,6 +35,7 @@ urlpatterns = [
     path('payment-type-transfer-list-create', PaymentTypeTransferListCreateView.as_view(), name="payment_type_transfer_list_create"),
     path('payment-type-transfer-retrieve-update-destroy/<int:pk>', PaymentTypeTransferRetrieveUpdateDestroyView.as_view(), name="payment_type_transfer_retrieve_update_destroy"),
     path('revenue-list-create', RevenueListCreateView.as_view(), name="revenue_list_create"),
+    path('revenue/update/', RevenueUpdateView.as_view()),
     path('revenue-retrieve-update-destroy/<int:pk>', RevenueRetrieveUpdateDestroyView.as_view(), name="revenue_retrieve_update_destroy"),
     path('expense-list-create', ExpenseListCreateView.as_view(), name="expense_list_create"),
     path('expense-retrieve-update-destroy/<int:pk>', ExpenseRetrieveUpdateDestroyView.as_view(), name="expense_retrieve_update_destroy"),
@@ -55,10 +58,14 @@ urlpatterns = [
     path('sadaka/monthly-totals/', SadakaWeeklyView.as_view(), name='sadaka-monthly-totals'),
     path('sp-managers/', SpManagerListView.as_view({'get': 'list', 'post':'create'}), name='spmanager-list'),
     path('sp-managers/<int:pk>/', SpManagerDetailView.as_view(), name='spmanager-detail'),
+    path('mchango-details/<int:mchango_id>/', MchangoStatsView.as_view(), name='spmanager-detail'),
     path('ahadi-payments', AhadiPaymentListCreateView.as_view(), name='ahadi-payments'),
     path('sadaka-zaka-stats', SadakaZakaStats.as_view(), name='sadaka-stats'),
     path('michango-stats', MchangoStats.as_view(), name='mchango-stats'),
     path('ahadi-stats', AhadiStats.as_view(), name='ahadi-stats'),
     path('matumizi-stats', ExpenseStats.as_view(), name='matumizi-stats'),
+    path('wahumini-stats', WahuminiStatsView.as_view(), name='wahunini-stats'),
+    path('check-zaka/', CheckZakaPresenceView.as_view(), name='check-zaka'),
+
 
 ]

@@ -29,8 +29,11 @@ class UserSerializer(serializers.ModelSerializer):
         extra_kwargs = {"password": {"write_only": True}}
 
     def create(self, validated_data):
+        with_role_id = validated_data
         role_id = validated_data.pop('role', None)  # Get role ID from validated data
-
+        print(validated_data)
+        print(role_id.id)
+        # role_id.
         # Retrieve SystemRole instance based on role_id
         if role_id:
             try:
@@ -40,11 +43,11 @@ class UserSerializer(serializers.ModelSerializer):
         else:
             role_instance = None
 
-        user = User.objects.create_user(**validated_data)
+        user = User.objects.create_user(**with_role_id)
 
         # Assign the role instance to the user
-        user.role = role_instance
-        user.save()
+        # user.role = role_id
+        # user.save()
 
         return user
 
