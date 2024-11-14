@@ -519,6 +519,7 @@ class AhadiListCreateView(ListCreateAPIView):
     def get_queryset(self):
         church_id = self.request.query_params.get('church_id')
         mchango_id = self.request.query_params.get('mchango_id')
+        wahumini_id = self.request.query_params.get('mhumini')
         filter_type = self.request.query_params.get('filter')
         year = self.request.query_params.get('year', timezone.now().year)
 
@@ -527,7 +528,8 @@ class AhadiListCreateView(ListCreateAPIView):
 
             if mchango_id:
                 queryset = queryset.filter(mchango=mchango_id)
-
+            if wahumini_id:
+                queryset = queryset.filter(wahumini=wahumini_id)
             if filter_type == 'today':
                 today = timezone.now().date()
                 queryset = queryset.filter(created_at__date=today)
@@ -548,6 +550,16 @@ class AhadiPaymentListCreateView(ListCreateAPIView):
     queryset = AhadiPayments.objects.all()
     serializer_class = AhadiPaymentSerializer
     permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        ahadi_id = self.request.query_params.get('ahadi_id')
+
+        queryset = Ahadi.objects.filter(ahadi=ahadi_id)
+
+        queryset = queryset.order_by('-created_at')
+
+        return queryset
+
 
     @transaction.atomic
     def perform_create(self, serializer):

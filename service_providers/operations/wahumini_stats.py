@@ -28,13 +28,13 @@ class WahuminiStatsView(APIView):
         # Fetch totals for Michango contributions
         michango_total = MchangoPayments.objects.filter(
             mhumini=wahumini_id,
-            date__year=current_year
+            inserted_at__year=current_year
         ).aggregate(total=Sum('amount'))['total'] or 0
 
         # Fetch totals for Ahadi contributions
         ahadi_total = Ahadi.objects.filter(
             wahumini=wahumini_id,
-            date__year=current_year
+            created_at__year=current_year
         ).aggregate(total=Sum('amount'))['total'] or 0
 
         # Monthly data for the area chart
