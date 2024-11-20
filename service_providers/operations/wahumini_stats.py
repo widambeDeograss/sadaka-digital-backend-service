@@ -1,5 +1,5 @@
 from django.db.models import Sum
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from datetime import date
@@ -7,7 +7,7 @@ from ..models import Wahumini, Zaka, Sadaka, Mchango, Ahadi, MchangoPayments
 
 
 class WahuminiStatsView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         wahumini_id = request.query_params.get('mhumini')

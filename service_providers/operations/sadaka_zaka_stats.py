@@ -4,13 +4,15 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 from datetime import datetime
+
+from .message import pushMessage
 from ..models import Zaka, Sadaka, CardsNumber
 
 
 class SadakaZakaStats(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         query_type = request.query_params.get('type')
@@ -136,16 +138,16 @@ class SadakaZakaStats(APIView):
         return Response(area_chart_data)
 
 
+
 class CheckZakaPresenceView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        # Get 'month' and 'year' from query parameters
         month = request.query_params.get('month')
         year = request.query_params.get('year')
         church_id = request.query_params.get('church_id')
+        query_type = request.query_params.get('query_type')  # Determines the action: 'check' or 'reminder'
 
-        # Validate the parameters
         if not month or not year:
             return Response({"error": "Month and year are required."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -153,28 +155,29 @@ class CheckZakaPresenceView(APIView):
             month = int(month)
             year = int(year)
             if month < 1 or month > 12:
-                return Response({"error": "Invalid month. Must be between 1 and 12."},
-                                status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": "Invalid month. Must be between 1 and 12."}, status=status.HTTP_400_BAD_REQUEST)
         except ValueError:
             return Response({"error": "Month and year must be integers."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Retrieve card details with presence information
-        card_details = self.get_zaka_card_details_for_month_year(month, year, church_id)
-
-        return Response({"card_details": card_details}, status=status.HTTP_200_OK)
+        if query_type == "check":
+            # Check presence
+            card_details = self.get_zaka_card_details_for_month_year(month, year, church_id)
+            return Response({"card_details": card_details}, status=status.HTTP_200_OK)
+        elif query_type == "reminder":
+            # Send reminders
+            reminder_status = self.send_unpaid_zaka_reminders(month, year, church_id)
+            return Response(reminder_status, status=status.HTTP_200_OK)
+        else:
+            return Response({"error": "Invalid query_type. Use 'check' or 'reminder'."}, status=status.HTTP_400_BAD_REQUEST)
 
     def get_zaka_card_details_for_month_year(self, month, year, church_id):
-        # Get all card numbers of type 'zaka'
         zaka_cards = CardsNumber.objects.filter(bahasha_type='zaka', mhumini__church=church_id).select_related('mhumini')
-
-        # Convert month and year to a date range for filtering
         start_date = datetime(year, month, 1)
         end_date = datetime(year, month + 1, 1) if month < 12 else datetime(year + 1, 1, 1)
 
         card_details = []
 
         for card in zaka_cards:
-            # Check if this card has a related entry in the Zaka table within the date range
             has_entry = Zaka.objects.filter(
                 bahasha=card,
                 church=church_id,
@@ -182,13 +185,36 @@ class CheckZakaPresenceView(APIView):
                 date__lt=end_date
             ).exists()
 
-            # Append card details with presence information
             card_details.append({
                 "card_no": card.card_no,
-                "mhumini_name": card.mhumini.first_name,  # Assuming Wahumini has a 'first_name' field
-                # "jumuiya": card.mhumini.jumuiya,  # Assuming Wahumini has a 'jumuiya' field
-                # "kanda": card.mhumini.jumuiya.kanda,  # Assuming Wahumini has a 'kanda' field
+                "mhumini_name": card.mhumini.first_name,
                 "present": has_entry
             })
 
         return card_details
+
+    def send_unpaid_zaka_reminders(self, month, year, church_id):
+        zaka_cards = CardsNumber.objects.filter(bahasha_type='zaka', mhumini__church=church_id).select_related('mhumini')
+        start_date = datetime(year, month, 1)
+        end_date = datetime(year, month + 1, 1) if month < 12 else datetime(year + 1, 1, 1)
+
+        unpaid_wahumini = []
+
+        for card in zaka_cards:
+            has_entry = Zaka.objects.filter(
+                bahasha=card,
+                church=church_id,
+                date__gte=start_date,
+                date__lt=end_date
+            ).exists()
+
+            if not has_entry:
+                unpaid_wahumini.append(card.mhumini)
+
+        # Send SMS to each unpaid wahumini
+        for mhumini in unpaid_wahumini:
+            print(mhumini.phone_number)
+            message = f"Habari {mhumini.first_name} {mhumini.first_name} , huu ni ujumbe wa kukukumbusha kutoa zaka yako kwa mwezi wa {month} mwaka {year}. Asante kwa mchango wako na Mungu akubariki."
+            pushMessage(message, mhumini.phone_number)  # Assuming `phone_number` field exists
+
+        return {"status": "SMS reminders sent to unpaid wahumini"}

@@ -4,47 +4,47 @@ from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView, RetrieveAPIView
-from rest_framework.permissions import AllowAny, AllowAny
+from rest_framework.permissions import IsAuthenticated,    IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
 from .models import *
+from .operations.message import pushMessage
 from .serializer import *
 
 
 class SystemPackageListCreateView(ListCreateAPIView):
     queryset = SystemPackage.objects.all()
     serializer_class = SystemPackageSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
 
 class SystemPackageRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     queryset = SystemPackage.objects.all()
     serializer_class = SystemPackageSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
 
 class SystemOfferListCreateView(ListCreateAPIView):
     queryset = SystemOffer.objects.all()
     serializer_class = SystemOfferSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
 
 class SystemOfferRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     queryset = SystemOffer.objects.all()
     serializer_class = SystemOfferSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
 
 class ServiceProviderListCreateView(ListCreateAPIView):
     queryset = ServiceProvider.objects.all()
     serializer_class = ServiceProviderSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
 
 class ServiceProviderByAdminView(RetrieveAPIView):
     serializer_class = ServiceProviderSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get_object(self):
         sp_admin_id = self.kwargs.get('sp_admin_id')
@@ -85,12 +85,12 @@ class ServiceProviderByAdminView(RetrieveAPIView):
 class ServiceProviderRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     queryset = ServiceProvider.objects.all()
     serializer_class = ServiceProviderSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
 
 class PackageListCreateView(ListCreateAPIView):
     serializer_class = PackageSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         # Get packages for a specific church_id, with filter if church_id is passed as a query parameter
@@ -137,7 +137,7 @@ class PackageListCreateView(ListCreateAPIView):
 
 class PackageRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     serializer_class = PackageSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     # def get_queryset(self):
     #     # Get packages for a specific church_id, with filter if church_id is passed as a query parameter
@@ -163,7 +163,7 @@ class PackageRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
 class SpManagerListView(viewsets.ModelViewSet):
     queryset = SpManagers.objects.filter(deleted=False)
     serializer_class = SpManagerSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         church_id = self.request.query_params.get('church_id')
@@ -174,13 +174,13 @@ class SpManagerListView(viewsets.ModelViewSet):
 class SpManagerDetailView(RetrieveUpdateDestroyAPIView):
     queryset = SpManagers.objects.all()
     serializer_class = SpManagerSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
 
 class KandaViewListCreate(ListCreateAPIView):
     queryset = Kanda.objects.all()
     serializer_class = KandaSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
 
     def get_queryset(self):
@@ -192,12 +192,12 @@ class KandaViewListCreate(ListCreateAPIView):
 class KandaViewUpdateDistroy(RetrieveUpdateDestroyAPIView):
     queryset = Kanda.objects.all()
     serializer_class = KandaSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
 class JumuiyaViewListCreate(ListCreateAPIView):
     queryset = Jumuiya.objects.all()
     serializer_class = JumuiyaSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         church_id = self.request.query_params.get('church_id')
@@ -208,12 +208,12 @@ class JumuiyaViewListCreate(ListCreateAPIView):
 class JumuiyaViewUpdateDistrol(RetrieveUpdateDestroyAPIView):
     queryset = Jumuiya.objects.all()
     serializer_class = JumuiyaSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
 class WahuminiListCreateView(ListCreateAPIView):
     queryset = Wahumini.objects.all()
     serializer_class = WahuminiSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         church_id = self.request.query_params.get('church_id')
@@ -225,13 +225,13 @@ class WahuminiListCreateView(ListCreateAPIView):
 class WahuminiRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     queryset = Wahumini.objects.all()
     serializer_class = WahuminiSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
 
 class CardsNumberListCreateView(ListCreateAPIView):
     queryset = CardsNumber.objects.all()
     serializer_class = CardsNumberSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         church_id = self.request.query_params.get('church_id')
@@ -243,7 +243,7 @@ class CardsNumberListCreateView(ListCreateAPIView):
 class CardsNumberRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     queryset = CardsNumber.objects.all()
     serializer_class = CardsNumberSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get_object(self):
         card_no = self.kwargs.get("card_no")
@@ -253,7 +253,7 @@ class CardsNumberRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
 class PaymentTypeListCreateView(ListCreateAPIView):
     queryset = PaymentType.objects.all()
     serializer_class = PaymentTypeSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         church_id = self.request.query_params.get('church_id')
@@ -265,13 +265,13 @@ class PaymentTypeListCreateView(ListCreateAPIView):
 class PaymentTypeRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     queryset = PaymentType.objects.all()
     serializer_class = PaymentTypeSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
 
 class SadakaListCreateView(ListCreateAPIView):
     queryset = Sadaka.objects.all()
     serializer_class = SadakaSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         church_id = self.request.query_params.get('church_id')
@@ -303,13 +303,38 @@ class SadakaListCreateView(ListCreateAPIView):
 class SadakaRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     queryset = Sadaka.objects.all()
     serializer_class = SadakaSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
 
 class ZakaListCreateView(ListCreateAPIView):
     queryset = Zaka.objects.all()
     serializer_class = ZakaSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        zaka = serializer.save()
+        if zaka.bahasha:
+            # Retrieve the mhumini's details for the SMS
+            mhumini = zaka.bahasha.mhumini
+            amount_paid = zaka.zaka_amount
+            month = zaka.date.strftime("%B")  # Get the month name
+            year = zaka.date.year
+
+            # Compose the SMS message in Swahili
+            message = (f"Habari {mhumini.first_name} {mhumini.last_name}, tumepokea zaka yako ya Tsh {amount_paid} kwa mwezi wa {month} {year}. \n"
+                       f"imepokelewa kwa {zaka.payment_type.name}"
+                       f" Asante kwa mchango wako, Mungu akubariki. ")
+            print(mhumini.phone_number)
+            # Send the SMS using your existing SMS method
+            pushMessage(message, mhumini.phone_number)
+
+
+        else:
+            pass
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def get_queryset(self):
         church_id = self.request.query_params.get('church_id')
@@ -341,29 +366,29 @@ class ZakaListCreateView(ListCreateAPIView):
 class ZakaRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     queryset = Zaka.objects.all()
     serializer_class = ZakaSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
 
 class PaymentTypeTransferListCreateView(ListCreateAPIView):
     queryset = PaymentTypeTransfer.objects.all()
     serializer_class = PaymentTypeTransferSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
 
 class PaymentTypeTransferRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     queryset = PaymentTypeTransfer.objects.all()
     serializer_class = PaymentTypeTransferSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
 
 class RevenueListCreateView(ListCreateAPIView):
     queryset = Revenue.objects.all()
     serializer_class = RevenueSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
 
 class RevenueUpdateView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def put(self, request, *args, **kwargs):
         revenue_type_record = request.data.get("revenue_type_record")
@@ -393,13 +418,13 @@ class RevenueUpdateView(APIView):
 class RevenueRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     queryset = Revenue.objects.all()
     serializer_class = RevenueSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
 
 class ExpenseListCreateView(ListCreateAPIView):
     queryset = Expense.objects.all()
     serializer_class = ExpenseSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         church_id = self.request.query_params.get('church_id')
@@ -425,25 +450,25 @@ class ExpenseListCreateView(ListCreateAPIView):
 class ExpenseRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     queryset = Expense.objects.all()
     serializer_class = ExpenseSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
 
 class ExpenseCategoryListCreateView(ListCreateAPIView):
     queryset = ExpenseCategory.objects.all()
     serializer_class = ExpenseCategorySerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
 
 class ExpenseCategoryRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     queryset = ExpenseCategory.objects.all()
     serializer_class = ExpenseCategorySerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
 
 class MchangoListCreateView(ListCreateAPIView):
     queryset = Mchango.objects.all()
     serializer_class = MchangoSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         church_id = self.request.query_params.get('church_id')
@@ -455,13 +480,13 @@ class MchangoListCreateView(ListCreateAPIView):
 class MchangoRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     queryset = Mchango.objects.all()
     serializer_class = MchangoSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
 
 class MchangoPaymentListCreateView(ListCreateAPIView):
     queryset = MchangoPayments.objects.all()
     serializer_class = MchangoPaymentSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         mchango_id = self.request.query_params.get('mchango_id')
@@ -509,12 +534,12 @@ class MchangoPaymentListCreateView(ListCreateAPIView):
 class MchangoPaymentRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     queryset = MchangoPayments.objects.all()
     serializer_class = MchangoSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
 class AhadiListCreateView(ListCreateAPIView):
     queryset = Ahadi.objects.all()
     serializer_class = AhadiSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         church_id = self.request.query_params.get('church_id')
@@ -543,13 +568,13 @@ class AhadiListCreateView(ListCreateAPIView):
 class AhadiRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     queryset = Ahadi.objects.all()
     serializer_class = AhadiSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
 
 class AhadiPaymentListCreateView(ListCreateAPIView):
     queryset = AhadiPayments.objects.all()
     serializer_class = AhadiPaymentSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         ahadi_id = self.request.query_params.get('ahadi_id')

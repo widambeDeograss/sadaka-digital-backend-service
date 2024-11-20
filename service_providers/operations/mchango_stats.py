@@ -2,7 +2,7 @@ from django.db.models import Sum, Value, DecimalField
 from django.db.models.functions import TruncMonth, Coalesce, ExtractMonth
 from django.utils import timezone
 from django.utils.timezone import now
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from datetime import datetime, timedelta
 from rest_framework.views import APIView
@@ -11,7 +11,7 @@ from service_providers.models import MchangoPayments, Mchango, Ahadi
 
 
 class MchangoStats(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         church_id = request.query_params.get("church_id")
@@ -138,7 +138,7 @@ class MchangoStats(APIView):
 
 
 class MchangoStatsView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, mchango_id, *args, **kwargs):
         # Ensure the Mchango exists

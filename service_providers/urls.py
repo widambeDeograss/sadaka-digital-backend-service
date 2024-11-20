@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .operations.ahadi_stats import AhadiStats
+from .operations.dashboard_stats import ChurchDashboardStatsView
 from .operations.matumizi_stats import ExpenseStats
 from .operations.mchango_stats import MchangoStats, MchangoStatsView
 from .operations.sadaka_zaka_stats import SadakaZakaStats, CheckZakaPresenceView
@@ -62,6 +63,7 @@ urlpatterns = [
     path('ahadi-payments', AhadiPaymentListCreateView.as_view(), name='ahadi-payments'),
     path('sadaka-zaka-stats', SadakaZakaStats.as_view(), name='sadaka-stats'),
     path('michango-stats', MchangoStats.as_view(), name='mchango-stats'),
+    path('dashboard-stats', ChurchDashboardStatsView.as_view(), name='dashboard-stats'),
     path('ahadi-stats', AhadiStats.as_view(), name='ahadi-stats'),
     path('matumizi-stats', ExpenseStats.as_view(), name='matumizi-stats'),
     path('wahumini-stats', WahuminiStatsView.as_view(), name='wahunini-stats'),

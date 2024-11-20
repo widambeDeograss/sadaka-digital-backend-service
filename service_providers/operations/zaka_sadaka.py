@@ -4,12 +4,12 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 from ..models import Zaka, Sadaka, CardsNumber
 
 
 class ZakaMonthlyTotalsView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
         church_id = request.query_params.get('church_id')
@@ -94,7 +94,7 @@ class ZakaMonthlyTotalsView(APIView):
 
 
 class SadakaWeeklyView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get_week_boundaries(self, year, month):
         """Divide the month into four weekly periods."""

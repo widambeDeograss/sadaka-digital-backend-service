@@ -1,12 +1,12 @@
 from django.db.models import Sum, Count, Q, F
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from service_providers.models import Ahadi, Mchango
 
 
 class AhadiStats(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         church_id = request.query_params.get("church_id")
