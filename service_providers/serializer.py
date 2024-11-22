@@ -127,8 +127,7 @@ class KandaSerializer(serializers.ModelSerializer):
 class JumuiyaSerializer(serializers.ModelSerializer):
     kanda = serializers.PrimaryKeyRelatedField(
         queryset=Kanda.objects.all(),
-        allow_null=True,
-        required=False
+        required=True
     )
     kanda_details = KandaSerializer(source='kanda', read_only=True)
     church = serializers.PrimaryKeyRelatedField(
@@ -145,8 +144,7 @@ class JumuiyaSerializer(serializers.ModelSerializer):
 class WahuminiSerializer(serializers.ModelSerializer):
     jumuiya = serializers.PrimaryKeyRelatedField(
         queryset=Jumuiya.objects.all(),
-        allow_null=True,
-        required=False
+        required=True
     )
     jumuiya_details = KandaSerializer(source='jumuiya', read_only=True)
     class Meta:
