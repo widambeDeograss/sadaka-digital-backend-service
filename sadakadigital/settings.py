@@ -145,6 +145,7 @@ USE_TZ = True
 STATIC_URL = 'static/'
 MEDIA_ROOT = '/var/www/html/sadaka'
 MEDIA_URL = '/media/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
@@ -165,7 +166,7 @@ REST_FRAMEWORK = {
 ############################ SIMPLE JWT SETTINGS ############################
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=560),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
