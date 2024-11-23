@@ -28,6 +28,9 @@ class UserSerializer(serializers.ModelSerializer):
         ]
         extra_kwargs = {"password": {"write_only": True}}
 
+    def create(self, validated_data):
+        user = User.objects.create_user(**validated_data)
+        return user
     # def create(self, validated_data):
     #     # Extract the 'role' field from the validated data
     #     role_id = validated_data.pop('role', None)
