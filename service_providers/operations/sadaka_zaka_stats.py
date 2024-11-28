@@ -36,19 +36,19 @@ class SadakaZakaStats(APIView):
         sadaka_cash_total = Sadaka.objects.filter(
             church_id=church_id,
             payment_type__name='Cash',
-            inserted_at=today
+            inserted_at__date=today
         ).aggregate(total_cash=Sum('sadaka_amount'))['total_cash'] or 0
 
         sadaka_other_total = Sadaka.objects.filter(
             church_id=church_id,
-            inserted_at=today
+            inserted_at__date=today
         ).exclude(
             payment_type__name='Cash'
         ).aggregate(total_other=Sum('sadaka_amount'))['total_other'] or 0
 
         sadaka_total_today = Sadaka.objects.filter(
             church_id=church_id,
-            inserted_at=today
+            inserted_at__date=today
         ).aggregate(total_today=Sum('sadaka_amount'))['total_today'] or 0
 
         sadaka_total_year = Sadaka.objects.filter(
