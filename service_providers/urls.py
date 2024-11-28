@@ -3,6 +3,7 @@ from django.urls import path
 from .operations.ahadi_stats import AhadiStats
 from .operations.dashboard_stats import ChurchDashboardStatsView
 from .operations.matumizi_stats import ExpenseStats
+from .operations.mavuno_stats import MavunoStatsAndChartView
 from .operations.mchango_stats import MchangoStats, MchangoStatsView
 from .operations.sadaka_zaka_stats import SadakaZakaStats, CheckZakaPresenceView
 from .operations.wahumini_stats import WahuminiStatsView
@@ -70,8 +71,8 @@ urlpatterns = [
     path('ahadi-stats', AhadiStats.as_view(), name='ahadi-stats'),
     path('matumizi-stats', ExpenseStats.as_view(), name='matumizi-stats'),
     path('wahumini-stats', WahuminiStatsView.as_view(), name='wahunini-stats'),
-    path('check-zaka/', CheckZakaPresenceView.as_view(), name='check-zaka'),
-    path('mavuno-list-create', MavunoListCreateView.as_view(), name="mavuno_list_create"),  
+    path('mavuno/stats-and-chart/', MavunoStatsAndChartView.as_view(), name="mavuno_list_create"),
+    path('mavuno-list-create', MavunoListCreateView.as_view(), name="mavuno_list_create"),
     path('mavuno-retrieve-update-destroy/<int:pk>', MavunoRetrieveUpdateDestroyView.as_view(), name="mavuno_retrieve_update_destroy"),
     path('mavuno-payment-list-create', MavunoPaymentListCreateView.as_view(), name="mavuno_payment_list_create"),
     path('mavuno-payment-retrieve-update-destroy/<int:pk>', MavunoPaymentRetrieveUpdateDestroyView.as_view(), name="mavuno_payment_retrieve_update_destroy"),

@@ -772,7 +772,6 @@ class MavunoPaymentListCreateView(ListCreateAPIView):
     serializer_class = MavunoPaymentSerializer
     permission_classes = [IsAuthenticated]
 
-    @method_decorator(cache_page(60 * 15))
     def get_queryset(self):
         mavuno_id = self.request.query_params.get('mavuno_id')
         if mavuno_id:
