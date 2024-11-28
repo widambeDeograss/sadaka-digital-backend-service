@@ -103,7 +103,7 @@ class Package(models.Model):
 
 class Kanda(models.Model):
     name = models.CharField(max_length=300)
-    church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
+    church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE, db_index=True)
     address = models.TextField(null=True, blank=True)
     jina_kiongozi = models.CharField(max_length=300)
     namba_ya_simu = models.CharField(max_length=12, blank=True, null=True)
@@ -115,13 +115,18 @@ class Kanda(models.Model):
 
     def __str__(self):
         return f"Jumuiya: {self.name}"
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['church', 'name'])
+        ]
 
 
 class Jumuiya(models.Model):
     name = models.CharField(max_length=300)
     address = models.TextField(null=True, blank=True)
     jina_kiongozi = models.CharField(max_length=300)
-    kanda = models.ForeignKey(Kanda, on_delete=models.CASCADE, null=True, blank=True)
+    kanda = models.ForeignKey(Kanda, on_delete=models.CASCADE, null=True, blank=True, db_index=True)
     church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
     namba_ya_simu = models.CharField(max_length=12, blank=True, null=True)
     location = models.CharField(null=True, blank=True)
@@ -132,6 +137,11 @@ class Jumuiya(models.Model):
 
     def __str__(self):
         return f"Jumuiya: {self.name}"
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['church', 'name'])
+        ]
 
 class Wahumini(models.Model):
     GENDER_CHOICES = (
@@ -140,9 +150,9 @@ class Wahumini(models.Model):
     )
     user = models.OneToOneField('user_management.User', on_delete=models.SET_NULL, null=True, blank=True,
                              related_name='wahumini', help_text='Link to a user if the wahumini is a registered user.')
-    church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
+    church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE, db_index=True)
     type = models.CharField(max_length=27, default="Mtu mzima" )
-    jumuiya = models.ForeignKey(Jumuiya, on_delete=models.CASCADE, null=True, blank=True)
+    jumuiya = models.ForeignKey(Jumuiya, on_delete=models.CASCADE, null=True, blank=True, db_index=True)
     first_name = models.CharField(max_length=100, null=True, blank=True,
                                   help_text='First name for non-registered wahumini.')
     last_name = models.CharField(max_length=100, null=True, blank=True,
@@ -165,14 +175,19 @@ class Wahumini(models.Model):
             return f"Wahumini: {self.user.username} (Registered User)"
         return f"Wahumini: {self.first_name} {self.last_name} (Non-Registered)"
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['church', 'jumuiya', 'phone_number'])
+        ]
+
 
 class CardsNumber(models.Model):
     BAHASHA_TYPES = (
         ('zaka', 'zaka'),
         ('sadaka', 'sadaka'),
     )
-    mhumini = models.ForeignKey(Wahumini, on_delete=models.CASCADE, related_name='nambaza_kadi')
-    card_no = models.CharField(max_length=50, unique=True, help_text='Unique card number for identification.')
+    mhumini = models.ForeignKey(Wahumini, on_delete=models.CASCADE, related_name='nambaza_kadi', db_index=True)
+    card_no = models.CharField(max_length=50, unique=True, help_text='Unique card number for identification.', db_index=True)
     created_by = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_by = models.CharField(max_length=255)
@@ -182,6 +197,11 @@ class CardsNumber(models.Model):
 
     def __str__(self):
         return f"Nambaza Kadi: {self.card_no} (Wahumini: {self.mhumini.first_name})"
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['mhumini', 'card_no', 'bahasha_type'])
+        ]
 
 
 
@@ -197,13 +217,26 @@ class PaymentType(models.Model):
     def __str__(self):
         return self.name
 
+class SadakaTypes(models.Model):
+    name = models.CharField(max_length=100)
+    church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
+    description = models.TextField(null=True, blank=True)
+    created_by = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_by = models.CharField(max_length=255)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
 
 class Sadaka(models.Model):
-    church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
+    church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE, db_index=True)
     bahasha = models.ForeignKey(CardsNumber, on_delete=models.CASCADE, null=True, blank=True)
     sadaka_amount = models.DecimalField(max_digits=20, decimal_places=2)
     collected_by = models.CharField(max_length=255)
     payment_type = models.ForeignKey(PaymentType, on_delete=models.CASCADE)
+    sadaka_type = models.ForeignKey(SadakaTypes, on_delete=models.CASCADE, null=True, blank=True)
     date = models.DateField()
     inserted_by = models.CharField(max_length=255)
     inserted_at = models.DateTimeField(auto_now_add=True)
@@ -213,9 +246,14 @@ class Sadaka(models.Model):
     def __str__(self):
         return f"Sadaka: {self.sadaka_amount} by {self.collected_by}"
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['church', 'bahasha', 'sadaka_type'])
+        ]
+
 
 class Zaka(models.Model):
-    church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
+    church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE, db_index=True)
     bahasha = models.ForeignKey(CardsNumber, on_delete=models.CASCADE, null=True, blank=True)
     zaka_amount = models.DecimalField(max_digits=20, decimal_places=2)
     payment_type = models.ForeignKey(PaymentType, on_delete=models.CASCADE)
@@ -229,6 +267,11 @@ class Zaka(models.Model):
     def __str__(self):
         return f"Zakaa: {self.zaka_amount} by {self.collected_by}"
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['church', 'bahasha', 'payment_type'])
+        ]
+
 
 class PaymentTypeTransfer(models.Model):
     from_payment_type = models.ForeignKey(PaymentType, on_delete=models.CASCADE, related_name='transfers_from')
@@ -239,13 +282,20 @@ class PaymentTypeTransfer(models.Model):
     created_by = models.CharField(max_length=255)
     updated_by = models.CharField(max_length=255)
 
+
     def __str__(self):
         return f"Transfer of {self.amount} to {self.to_payment_type.name}"
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['church', 'transfer_date'])
+        ]
+
 
 
 class Revenue(models.Model):
     amount = models.DecimalField(max_digits=20, decimal_places=2)
-    church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
+    church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE, db_index=True)
     payment_type = models.ForeignKey(PaymentType, on_delete=models.CASCADE)
     revenue_type = models.CharField(max_length=100)
     revenue_type_record = models.CharField(max_length=100)
@@ -254,6 +304,11 @@ class Revenue(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_by = models.CharField(max_length=255)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['church', 'date_received'])
+        ]
 
     def __str__(self):
         return f"{self.revenue_type}: {self.amount} on {self.date_received}"
@@ -269,12 +324,18 @@ class ExpenseCategory(models.Model):
     updated_by = models.CharField(max_length=255)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['church'])
+        ]
+
+
     def __str__(self):
         return self.category_name
 
 
 class Expense(models.Model):
-    church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
+    church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE, db_index=True)
     amount = models.DecimalField(max_digits=20, decimal_places=4)
     date = models.DateField()
     spent_by = models.CharField(max_length=255)
@@ -284,13 +345,18 @@ class Expense(models.Model):
     updated_by = models.CharField(max_length=255)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['church', 'expense_category'])
+        ]
+
     def __str__(self):
         return f"Expense: {self.amount} - {self.spent_by}"
 
 
 
 class Mchango(models.Model):
-    church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
+    church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE, db_index=True)
     mchango_name = models.CharField(max_length=255)
     mchango_amount = models.DecimalField(max_digits=20, decimal_places=2)
     mchango_description = models.TextField()
@@ -302,6 +368,11 @@ class Mchango(models.Model):
     inserted_at = models.DateTimeField(auto_now_add=True)
     updated_by = models.CharField(max_length=255)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['church', 'status'])
+        ]
 
     def __str__(self):
         return f"Mchango: {self.mchango_name} collected {self.collected_amount}"
@@ -316,10 +387,16 @@ class MchangoPayments(models.Model):
     updated_by = models.CharField(max_length=255)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['mchango', 'mhumini'])
+        ]
+
+
 
 class Ahadi(models.Model):
-    church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE)
-    wahumini = models.ForeignKey('Wahumini', on_delete=models.CASCADE, related_name='ahadi')
+    church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE, db_index=True)
+    wahumini = models.ForeignKey('Wahumini', on_delete=models.CASCADE, related_name='ahadi', db_index=True)
     mchango = models.ForeignKey('Mchango', on_delete=models.CASCADE, related_name='ahadi', null=True, blank=True )
     amount = models.DecimalField(max_digits=20, decimal_places=2)
     paid_amount = models.DecimalField(max_digits=20, decimal_places=2)
@@ -329,6 +406,11 @@ class Ahadi(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_by = models.CharField(max_length=255)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['wahumini', 'church'])
+        ]
 
     def __str__(self):
         return f"Ahadi by {self.wahumini} for {self.mchango} - {self.amount}"
@@ -344,4 +426,45 @@ class AhadiPayments(models.Model):
     updated_by = models.CharField(max_length=255)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['ahadi'])
+        ]
 
+
+class Mavuno(models.Model):
+    jumuiya = models.ForeignKey(Jumuiya, on_delete=models.CASCADE, null=True, blank=True, db_index=True)
+    name = models.CharField(max_length=300)
+    description = models.TextField()
+    church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE, db_index=True)
+    year_target_amount = models.DecimalField(max_digits=20, decimal_places=2)
+    collected_amount = models.DecimalField(max_digits=20, decimal_places=2, default=0)
+    status = models.BooleanField(default=True)
+    inserted_by = models.CharField(max_length=255)
+    inserted_at = models.DateTimeField(auto_now_add=True)
+    updated_by = models.CharField(max_length=255)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Mavuno by {self.jumuiya.name} for {self.name} - {self.year_target_amount}"
+
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['jumuiya', 'church'])
+        ]
+
+class MavunoPayments(models.Model):
+    mavuno = models.ForeignKey(Mavuno, on_delete=models.CASCADE)
+    payment_type = models.ForeignKey(PaymentType, on_delete=models.CASCADE, default=1)
+    amount = models.DecimalField(max_digits=20, decimal_places=2)
+    mhumini = models.ForeignKey(Wahumini, on_delete=models.CASCADE, null=True, blank=True)
+    inserted_by = models.CharField(max_length=255)
+    inserted_at = models.DateTimeField(auto_now_add=True)
+    updated_by = models.CharField(max_length=255)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['mavuno', 'payment_type'])
+        ]

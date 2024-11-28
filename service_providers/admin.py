@@ -3,7 +3,7 @@ from .models import (
     CardsNumber, Mchango, PaymentType, ServiceProvider,
     SystemPackage, Zaka, Ahadi, Sadaka, Revenue,
     PaymentTypeTransfer, ExpenseCategory, Expense,
-    SystemOffer, Package, Wahumini, Jumuiya, Kanda,MchangoPayments
+    SystemOffer, Package, Wahumini, Jumuiya, Kanda, MchangoPayments, SadakaTypes, AhadiPayments, MavunoPayments, Mavuno
 )
 
 # Register all models
@@ -24,4 +24,8 @@ admin.site.register(Package)
 admin.site.register(Wahumini)
 admin.site.register(Kanda)
 admin.site.register(Jumuiya)
-
+admin.site.register(SadakaTypes)
+admin.site.register(MchangoPayments)
+admin.site.register(AhadiPayments)
+admin.site.register(MavunoPayments)
+admin.site.register(Mavuno)

@@ -167,9 +167,17 @@ class PaymentTypeSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class SadakaTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SadakaTypes
+        fields = "__all__"
+
+
 class SadakaSerializer(serializers.ModelSerializer):
     bahasha = serializers.PrimaryKeyRelatedField(queryset=CardsNumber.objects.all(), required=False, allow_null=True)
     bahasha_details = CardsNumberSerializer(source='bahasha', read_only=True)
+    sadaka_type = serializers.PrimaryKeyRelatedField(queryset=SadakaTypes.objects.all(), required=False, allow_null=True)
+    type_details = SadakaTypeSerializer(source='sadaka_type', read_only=True)
     payment_type = serializers.PrimaryKeyRelatedField(queryset=PaymentType.objects.all(), required=False, allow_null=True)
     payment_type_details = PaymentTypeSerializer(source='payment_type', read_only=True)
     class Meta:
@@ -243,6 +251,7 @@ class AhadiSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+
 class AhadiPaymentSerializer(serializers.ModelSerializer):
     class Meta:
         model = AhadiPayments
@@ -263,3 +272,23 @@ class AhadiPaymentSerializer(serializers.ModelSerializer):
         #
         #     return ahadi_payment
 
+class MavunoSerializer(serializers.ModelSerializer):
+    jumuiya = serializers.PrimaryKeyRelatedField(queryset=Jumuiya.objects.all(), required=False, allow_null=True)
+    jumuiya_details = JumuiyaSerializer(source='jumuiya', read_only=True)
+
+    class Meta:
+        model = Mavuno
+        fields = "__all__"
+
+
+class MavunoPaymentSerializer(serializers.ModelSerializer):
+    payment_type = serializers.PrimaryKeyRelatedField(queryset=PaymentType.objects.all(), required=True)
+    payment_type_details = PaymentTypeSerializer(source='payment_type', read_only=True)
+    mhumini = serializers.PrimaryKeyRelatedField(queryset=Wahumini.objects.all(), required=False, allow_null=True)
+    mhumini_details = WahuminiSerializer(source='mhumini', read_only=True)
+
+    class Meta:
+        model = MavunoPayments
+        fields = "__all__"
+
+        

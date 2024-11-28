@@ -36,24 +36,24 @@ class SadakaZakaStats(APIView):
         sadaka_cash_total = Sadaka.objects.filter(
             church_id=church_id,
             payment_type__name='Cash',
-            date=today
+            inserted_at=today
         ).aggregate(total_cash=Sum('sadaka_amount'))['total_cash'] or 0
 
         sadaka_other_total = Sadaka.objects.filter(
             church_id=church_id,
-            date=today
+            inserted_at=today
         ).exclude(
             payment_type__name='Cash'
         ).aggregate(total_other=Sum('sadaka_amount'))['total_other'] or 0
 
         sadaka_total_today = Sadaka.objects.filter(
             church_id=church_id,
-            date=today
+            inserted_at=today
         ).aggregate(total_today=Sum('sadaka_amount'))['total_today'] or 0
 
         sadaka_total_year = Sadaka.objects.filter(
             church_id=church_id,
-            date__year=current_year
+            inserted_at__year=current_year
         ).aggregate(total_year=Sum('sadaka_amount'))['total_year'] or 0
 
         return Response({
@@ -67,27 +67,27 @@ class SadakaZakaStats(APIView):
         zaka_cash_total = Zaka.objects.filter(
             church_id=church_id,
             payment_type__name='Cash',
-           date__year = current_year,
-           date__month = today.month
+           inserted_at__year = current_year,
+           inserted_at__month = today.month
         ).aggregate(total_cash=Sum('zaka_amount'))['total_cash'] or 0
 
         zaka_other_total = Zaka.objects.filter(
             church_id=church_id,
-            date__year=current_year,
-            date__month=today.month
+            inserted_at__year=current_year,
+            inserted_at__month=today.month
         ).exclude(
             payment_type__name='Cash'
         ).aggregate(total_other=Sum('zaka_amount'))['total_other'] or 0
 
         zaka_total_today = Zaka.objects.filter(
             church_id=church_id,
-            date__year=current_year,
-            date__month=today.month
+            inserted_at__year=current_year,
+            inserted_at__month=today.month
         ).aggregate(total_today=Sum('zaka_amount'))['total_today'] or 0
 
         zaka_total_year = Zaka.objects.filter(
             church_id=church_id,
-            date__year=current_year
+            inserted_at__year=current_year
         ).aggregate(total_year=Sum('zaka_amount'))['total_year'] or 0
 
         return Response({
@@ -99,7 +99,7 @@ class SadakaZakaStats(APIView):
 
     def get_area_chart_data(self, church_id, current_year):
         sadaka_monthly = (
-            Sadaka.objects.filter(church_id=church_id, date__year=current_year)
+            Sadaka.objects.filter(church_id=church_id, inserted_at__year=current_year)
             .annotate(month=TruncMonth('date'))
             .values('month')
             .annotate(total=Sum('sadaka_amount'))
@@ -107,7 +107,7 @@ class SadakaZakaStats(APIView):
         )
 
         zaka_monthly = (
-            Zaka.objects.filter(church_id=church_id, date__year=current_year)
+            Zaka.objects.filter(church_id=church_id, inserted_at__year=current_year)
             .annotate(month=TruncMonth('date'))
             .values('month')
             .annotate(total=Sum('zaka_amount'))

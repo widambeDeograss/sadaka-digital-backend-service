@@ -29,6 +29,9 @@ urlpatterns = [
     path('cards-number-retrieve-by-card-no/<str:card_no>/', CardsNumberRetrieveUpdateDestroyView.as_view(), name="cards_number_retrieve_by_card_no"),
     path('payment-type-list-create', PaymentTypeListCreateView.as_view(), name="payment_type_list_create"),
     path('payment-type-retrieve-update-destroy/<int:pk>', PaymentTypeRetrieveUpdateDestroyView.as_view(), name="payment_type_retrieve_update_destroy"),
+    path('sadaka--type-retrieve-update-destroy/<int:pk>', SadakaTypeRetrieveUpdateDestroyView.as_view(),
+         name="sadaka_type_retrieve_update_destroy"),
+    path('sadaka-type-list-create', SadakaTypeListCreateView.as_view(), name="sadaka_type_list_create"),
     path('sadaka-list-create', SadakaListCreateView.as_view(), name="sadaka_list_create"),
     path('sadaka-retrieve-update-destroy/<int:pk>', SadakaRetrieveUpdateDestroyView.as_view(), name="sadaka_retrieve_update_destroy"),
     path('zaka-list-create', ZakaListCreateView.as_view(), name="zaka_list_create"),
@@ -68,6 +71,9 @@ urlpatterns = [
     path('matumizi-stats', ExpenseStats.as_view(), name='matumizi-stats'),
     path('wahumini-stats', WahuminiStatsView.as_view(), name='wahunini-stats'),
     path('check-zaka/', CheckZakaPresenceView.as_view(), name='check-zaka'),
-
+    path('mavuno-list-create', MavunoListCreateView.as_view(), name="mavuno_list_create"),  
+    path('mavuno-retrieve-update-destroy/<int:pk>', MavunoRetrieveUpdateDestroyView.as_view(), name="mavuno_retrieve_update_destroy"),
+    path('mavuno-payment-list-create', MavunoPaymentListCreateView.as_view(), name="mavuno_payment_list_create"),
+    path('mavuno-payment-retrieve-update-destroy/<int:pk>', MavunoPaymentRetrieveUpdateDestroyView.as_view(), name="mavuno_payment_retrieve_update_destroy"),
 
 ]

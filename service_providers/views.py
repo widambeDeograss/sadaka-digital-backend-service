@@ -1,15 +1,19 @@
 from django.db import transaction
+from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView, RetrieveAPIView
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated,    IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .models import *
 from .operations.message import pushMessage
 from .serializer import *
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 
 
 class SystemPackageListCreateView(ListCreateAPIView):
@@ -189,10 +193,16 @@ class KandaViewListCreate(ListCreateAPIView):
             return Kanda.objects.filter(church=church_id)
         return Kanda.objects.all()
 
+    @method_decorator(cache_page(60 * 5))  # Cache for 5 minutes
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+
 class KandaViewUpdateDistroy(RetrieveUpdateDestroyAPIView):
     queryset = Kanda.objects.all()
     serializer_class = KandaSerializer
     permission_classes = [IsAuthenticated]
+
 
 class JumuiyaViewListCreate(ListCreateAPIView):
     queryset = Jumuiya.objects.all()
@@ -205,21 +215,87 @@ class JumuiyaViewListCreate(ListCreateAPIView):
             return Jumuiya.objects.filter(church=church_id)
         return Jumuiya.objects.all()
 
+    @method_decorator(cache_page(60 * 5))  # Cache for 5 minutes
+    def list(self, request, *args, **kwargs):
+        # Get query parameters
+        church_id = request.query_params.get('church_id')
+        search_query = request.query_params.get('search', '').strip()
+
+        # Start with base queryset
+        queryset = self.get_queryset()
+
+        # Apply search filter if search query exists
+        if search_query:
+            queryset = queryset.filter(
+                Q(church=church_id) if church_id else Q(),
+                Q(name__icontains=search_query) if search_query else Q()
+            )
+
+        # Perform ordering if specified
+        ordering = request.query_params.get('ordering')
+        if ordering:
+            try:
+                queryset = queryset.order_by(ordering)
+            except Exception:
+                # Fallback to default ordering if invalid
+                pass
+
+        # Paginate the results
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        # If not paginated, return full results
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+
 class JumuiyaViewUpdateDistrol(RetrieveUpdateDestroyAPIView):
     queryset = Jumuiya.objects.all()
     serializer_class = JumuiyaSerializer
     permission_classes = [IsAuthenticated]
 
+
+class WahuminiPagination(PageNumberPagination):
+    page_size = 50
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+
 class WahuminiListCreateView(ListCreateAPIView):
-    queryset = Wahumini.objects.all()
     serializer_class = WahuminiSerializer
     permission_classes = [IsAuthenticated]
+    # pagination_class = WahuminiPagination
 
     def get_queryset(self):
         church_id = self.request.query_params.get('church_id')
+        queryset = Wahumini.objects.all()
+
         if church_id:
-            return Wahumini.objects.filter(church=church_id)
-        return Wahumini.objects.all()
+            queryset = queryset.filter(church=church_id)
+
+        # Optimize database queries
+        queryset = queryset.select_related('church') \
+            .defer('jumuiya')  # Defer large fields if any
+
+        return queryset
+
+    @method_decorator(cache_page(60 * 5))  # Cache for 5 minutes
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+# class WahuminiListCreateView(ListCreateAPIView):
+#     queryset = Wahumini.objects.all()
+#     serializer_class = WahuminiSerializer
+#     permission_classes = [IsAuthenticated]
+#
+#     @method_decorator(cache_page(60 * 15))
+#     def get_queryset(self):
+#         church_id = self.request.query_params.get('church_id')
+#         if church_id:
+#             return Wahumini.objects.filter(church=church_id)
+#         return Wahumini.objects.all()
 
 
 class WahuminiRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
@@ -239,15 +315,35 @@ class CardsNumberListCreateView(ListCreateAPIView):
             return CardsNumber.objects.filter(mhumini__church_id=church_id)
         return CardsNumber.objects.all()
 
-    
+    @method_decorator(cache_page(60 * 5))  # Cache for 5 minutes
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+
+
 class CardsNumberRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     queryset = CardsNumber.objects.all()
     serializer_class = CardsNumberSerializer
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
+        print("------------------------")
+        """
+        Retrieve a single CardsNumber object by card_no and optionally church_id.
+        """
         card_no = self.kwargs.get("card_no")
-        return get_object_or_404(CardsNumber, card_no=card_no)
+        church_id = self.request.query_params.get("church_id")
+
+        if not card_no:
+            raise ValueError("Card number must be provided.")
+
+        # Filter criteria
+        filter_criteria = {"card_no": card_no}
+        if church_id:
+            filter_criteria["mhumini__church_id"] = church_id
+
+        # Retrieve object with caching and optimized query
+        return get_object_or_404(CardsNumber.objects.select_related('mhumini'), **filter_criteria)
 
 
 class PaymentTypeListCreateView(ListCreateAPIView):
@@ -261,6 +357,11 @@ class PaymentTypeListCreateView(ListCreateAPIView):
             return PaymentType.objects.filter(church=church_id)
         return PaymentType.objects.all()
 
+    @method_decorator(cache_page(60 * 5))  # Cache for 5 minutes
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+
 
 class PaymentTypeRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     queryset = PaymentType.objects.all()
@@ -268,10 +369,34 @@ class PaymentTypeRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
 
 
+class SadakaTypeListCreateView(ListCreateAPIView):
+    queryset = SadakaTypes.objects.all()
+    serializer_class = SadakaTypeSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        church_id = self.request.query_params.get('church_id')
+
+        if church_id:
+            queryset = SadakaTypes.objects.filter(church_id=church_id)
+
+            return queryset
+        else:
+             return SadakaTypes.objects.none()
+
+
+class SadakaTypeRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
+    queryset = SadakaTypes.objects.all()
+    serializer_class = SadakaTypeSerializer
+    permission_classes = [IsAuthenticated]
+
+
+
 class SadakaListCreateView(ListCreateAPIView):
     queryset = Sadaka.objects.all()
     serializer_class = SadakaSerializer
     permission_classes = [IsAuthenticated]
+
 
     def get_queryset(self):
         church_id = self.request.query_params.get('church_id')
@@ -294,6 +419,7 @@ class SadakaListCreateView(ListCreateAPIView):
             return Sadaka.objects.none()
 
 
+    @method_decorator(cache_page(60 * 5))
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         serializer = SadakaSerializer(queryset, many=True)
@@ -336,6 +462,7 @@ class ZakaListCreateView(ListCreateAPIView):
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
+
     def get_queryset(self):
         church_id = self.request.query_params.get('church_id')
         filter_type = self.request.query_params.get('filter')
@@ -356,7 +483,7 @@ class ZakaListCreateView(ListCreateAPIView):
         else:
             return Zaka.objects.none()
 
-
+    @method_decorator(cache_page(60 * 5))
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         serializer = ZakaSerializer(queryset, many=True)
@@ -475,6 +602,12 @@ class MchangoListCreateView(ListCreateAPIView):
         if church_id:
             return Mchango.objects.filter(church=church_id)
         return Mchango.objects.all()
+    
+    @method_decorator(cache_page(60 * 5))
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = MchangoSerializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 class MchangoRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
@@ -488,6 +621,7 @@ class MchangoPaymentListCreateView(ListCreateAPIView):
     serializer_class = MchangoPaymentSerializer
     permission_classes = [IsAuthenticated]
 
+    @method_decorator(cache_page(60 * 15))
     def get_queryset(self):
         mchango_id = self.request.query_params.get('mchango_id')
 
@@ -564,6 +698,7 @@ class AhadiListCreateView(ListCreateAPIView):
             return queryset
 
         return Ahadi.objects.none()
+    
 
 class AhadiRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     queryset = Ahadi.objects.all()
@@ -605,3 +740,59 @@ class AhadiPaymentListCreateView(ListCreateAPIView):
 
         return ahadi_payment
 
+
+
+class MavunoListCreateView(ListCreateAPIView):
+    queryset = Mavuno.objects.all()
+    serializer_class = MavunoSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        church_id = self.request.query_params.get('church_id')
+        if church_id:
+            return Mavuno.objects.filter(church=church_id)
+        return Mavuno.objects.all()
+    
+    @method_decorator(cache_page(60 * 5))
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = MavunoSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+
+
+class MavunoRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
+    queryset = Mavuno.objects.all()
+    serializer_class = MavunoSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class MavunoPaymentListCreateView(ListCreateAPIView):
+    queryset = MavunoPayments.objects.all()
+    serializer_class = MavunoPaymentSerializer
+    permission_classes = [IsAuthenticated]
+
+    @method_decorator(cache_page(60 * 15))
+    def get_queryset(self):
+        mavuno_id = self.request.query_params.get('mavuno_id')
+        if mavuno_id:
+            return MavunoPayments.objects.filter(mavuno_id=mavuno_id)
+        return MavunoPayments.objects.all()
+
+    @transaction.atomic
+    def perform_create(self, serializer):
+        mavuno_payment = serializer.save()
+
+        try:
+            mavuno = Mavuno.objects.select_for_update().get(id=mavuno_payment.mavuno_id)
+        except Mavuno.DoesNotExist:
+            raise serializers.ValidationError("Mavuno does not exist.")
+
+        mavuno.collected_amount += mavuno_payment.amount
+        mavuno.save()
+
+
+class MavunoPaymentRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
+    queryset = MavunoPayments.objects.all()
+    serializer_class = MavunoPaymentSerializer
+    permission_classes = [IsAuthenticated]
