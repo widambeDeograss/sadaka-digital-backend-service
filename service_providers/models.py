@@ -101,6 +101,7 @@ class Package(models.Model):
     updated_by = models.CharField(max_length=255)
     updated_at = models.DateTimeField(auto_now=True)
 
+
 class Kanda(models.Model):
     name = models.CharField(max_length=300)
     church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE, db_index=True)
@@ -202,7 +203,6 @@ class CardsNumber(models.Model):
         indexes = [
             models.Index(fields=['mhumini', 'card_no', 'bahasha_type'])
         ]
-
 
 
 class PaymentType(models.Model):

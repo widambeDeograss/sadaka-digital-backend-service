@@ -10,8 +10,14 @@ from .operations.wahumini_stats import WahuminiStatsView
 from .views import *
 from .views import RevenueUpdateView
 from .operations.zaka_sadaka import ZakaMonthlyTotalsView, SadakaWeeklyView
+from  .operations.revenue import MonthlyReportViewSet
+from rest_framework.routers import DefaultRouter
+
+router = DefaultRouter()
+router.register(r'revenue-reports', MonthlyReportViewSet, basename='revenue-reports')
 
 app_name = 'service_providers'
+
 
 urlpatterns = [
     path('system-package-list-create', SystemPackageListCreateView.as_view(), name="system_package_list_create"),
@@ -69,6 +75,7 @@ urlpatterns = [
     path('michango-stats', MchangoStats.as_view(), name='mchango-stats'),
     path('dashboard-stats', ChurchDashboardStatsView.as_view(), name='dashboard-stats'),
     path('ahadi-stats', AhadiStats.as_view(), name='ahadi-stats'),
+    # path('revenue-reports/', MonthlyReportViewSet.as_view({'get'}), name='revenue-stats'),
     path('matumizi-stats', ExpenseStats.as_view(), name='matumizi-stats'),
     path('wahumini-stats', WahuminiStatsView.as_view(), name='wahunini-stats'),
     path('mavuno/stats-and-chart/', MavunoStatsAndChartView.as_view(), name="mavuno_list_create"),
@@ -76,5 +83,5 @@ urlpatterns = [
     path('mavuno-retrieve-update-destroy/<int:pk>', MavunoRetrieveUpdateDestroyView.as_view(), name="mavuno_retrieve_update_destroy"),
     path('mavuno-payment-list-create', MavunoPaymentListCreateView.as_view(), name="mavuno_payment_list_create"),
     path('mavuno-payment-retrieve-update-destroy/<int:pk>', MavunoPaymentRetrieveUpdateDestroyView.as_view(), name="mavuno_payment_retrieve_update_destroy"),
-
+*router.urls,
 ]

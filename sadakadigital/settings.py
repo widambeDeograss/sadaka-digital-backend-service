@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'user_management',
     'service_providers',
+    'django_filters',
     'rest_framework_simplejwt.token_blacklist',
     "corsheaders",
 ]
@@ -155,6 +156,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 ###################### REST FRAMEWORK SETTINGS #########################
 
 REST_FRAMEWORK = {
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+    ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly"
     ],

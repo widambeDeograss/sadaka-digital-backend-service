@@ -3,7 +3,8 @@ from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
-from rest_framework import status, viewsets
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import status, viewsets, filters
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView, RetrieveAPIView
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated,    IsAuthenticated
@@ -304,10 +305,21 @@ class WahuminiRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
 
 
+class CardsNumberNumberPagination(PageNumberPagination):
+    page_size = 600  # Adjust based on performance needs
+    page_size_query_param = 'page_size'
+    max_page_size = 500
+
 class CardsNumberListCreateView(ListCreateAPIView):
     queryset = CardsNumber.objects.all()
     serializer_class = CardsNumberSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = CardsNumberNumberPagination
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter
+    ]
+    filterset_fields = ['bahasha_type', 'card_status']
 
     def get_queryset(self):
         church_id = self.request.query_params.get('church_id')
@@ -315,7 +327,7 @@ class CardsNumberListCreateView(ListCreateAPIView):
             return CardsNumber.objects.filter(mhumini__church_id=church_id)
         return CardsNumber.objects.all()
 
-    @method_decorator(cache_page(60 * 5))  # Cache for 5 minutes
+    # @method_decorator(cache_page(60 * 5))  # Cache for 5 minutes
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
