@@ -314,7 +314,7 @@ class CardsNumberListCreateView(ListCreateAPIView):
     queryset = CardsNumber.objects.all()
     serializer_class = CardsNumberSerializer
     permission_classes = [IsAuthenticated]
-    pagination_class = CardsNumberNumberPagination
+    # pagination_class = CardsNumberNumberPagination
     filter_backends = [
         DjangoFilterBackend,
         filters.SearchFilter
