@@ -188,6 +188,7 @@ class CardsNumber(models.Model):
         ('sadaka', 'sadaka'),
     )
     mhumini = models.ForeignKey(Wahumini, on_delete=models.CASCADE, related_name='nambaza_kadi', db_index=True)
+    church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE, db_index=True)
     card_no = models.CharField(max_length=50, unique=True, help_text='Unique card number for identification.', db_index=True)
     created_by = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -201,7 +202,7 @@ class CardsNumber(models.Model):
 
     class Meta:
         indexes = [
-            models.Index(fields=['mhumini', 'card_no', 'bahasha_type'])
+            models.Index(fields=['mhumini', 'card_no', 'bahasha_type', 'church'])
         ]
 
 

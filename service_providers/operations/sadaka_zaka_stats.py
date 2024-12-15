@@ -145,6 +145,8 @@ class CheckZakaPresenceView(APIView):
     def get(self, request):
         month = request.query_params.get('month')
         year = request.query_params.get('year')
+        end_month = request.query_params.get('end_month')
+        end_year = request.query_params.get('end_year')
         church_id = request.query_params.get('church_id')
         query_type = request.query_params.get('query_type')  # Determines the action: 'check' or 'reminder'
 
@@ -156,6 +158,9 @@ class CheckZakaPresenceView(APIView):
             year = int(year)
             if month < 1 or month > 12:
                 return Response({"error": "Invalid month. Must be between 1 and 12."}, status=status.HTTP_400_BAD_REQUEST)
+            if query_type == "range" and (not end_month or not end_year):
+                return Response({"error": "Both end_month and end_year are required for range queries."},
+                                status=status.HTTP_400_BAD_REQUEST)
         except ValueError:
             return Response({"error": "Month and year must be integers."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -167,8 +172,13 @@ class CheckZakaPresenceView(APIView):
             # Send reminders
             reminder_status = self.send_unpaid_zaka_reminders(month, year, church_id)
             return Response(reminder_status, status=status.HTTP_200_OK)
+        elif query_type == "range":
+            # Check presence range
+            card_details = self.get_zaka_card_details_for_range(month, year, end_month, end_year, church_id)
+            return Response({"card_details": card_details}, status=status.HTTP_200_OK)
         else:
-            return Response({"error": "Invalid query_type. Use 'check' or 'reminder'."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Invalid query_type. Use 'check', 'reminder', or 'range'."},
+                            status=status.HTTP_400_BAD_REQUEST)
 
     def get_zaka_card_details_for_month_year(self, month, year, church_id):
         zaka_cards = CardsNumber.objects.filter(bahasha_type='zaka', mhumini__church=church_id).select_related('mhumini')
@@ -191,6 +201,45 @@ class CheckZakaPresenceView(APIView):
                 "jumuiya":card.mhumini.jumuiya.name,
                 "kanda": card.mhumini.jumuiya.kanda.name,
                 "present": has_entry
+            })
+
+        return card_details
+
+    def get_zaka_card_details_for_range(self, start_month, start_year, end_month, end_year, church_id):
+        zaka_cards = CardsNumber.objects.filter(bahasha_type='zaka', mhumini__church=church_id).select_related(
+            'mhumini')
+        start_date = datetime(start_year, start_month, 1)
+        end_date = datetime(end_year, end_month + 1, 1) if end_month < 12 else datetime(end_year + 1, 1, 1)
+
+        card_details = []
+
+        for card in zaka_cards:
+            entries = Zaka.objects.filter(
+                bahasha=card,
+                church=church_id,
+                date__gte=start_date,
+                date__lt=end_date
+            )
+
+            monthly_presence = {}
+            for single_month in range(start_month, end_month + 1):
+                month_start_date = datetime(start_year, single_month, 1)
+                month_end_date = datetime(start_year, single_month + 1, 1) if single_month < 12 else datetime(
+                    start_year + 1, 1, 1)
+                has_entry = Zaka.objects.filter(
+                    bahasha=card,
+                    church=church_id,
+                    date__gte=month_start_date,
+                    date__lt=month_end_date
+                ).exists()
+                monthly_presence[single_month] = has_entry
+
+            card_details.append({
+                "card_no": card.card_no,
+                "mhumini_name": card.mhumini.first_name,
+                "jumuiya": card.mhumini.jumuiya.name,
+                "kanda": card.mhumini.jumuiya.kanda.name,
+                "monthly_presence": monthly_presence
             })
 
         return card_details

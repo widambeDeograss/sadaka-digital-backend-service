@@ -324,7 +324,7 @@ class CardsNumberListCreateView(ListCreateAPIView):
     def get_queryset(self):
         church_id = self.request.query_params.get('church_id')
         if church_id:
-            return CardsNumber.objects.filter(mhumini__church_id=church_id)
+            return CardsNumber.objects.filter(church=church_id)
         return CardsNumber.objects.all()
 
     # @method_decorator(cache_page(60 * 5))  # Cache for 5 minutes
