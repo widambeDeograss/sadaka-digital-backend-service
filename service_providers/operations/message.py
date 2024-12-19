@@ -1,8 +1,8 @@
 from BeemAfrica import Authorize, SMS
 
 def pushMessage(message, phone):
-    Authorize('771d0353424c0189',
-                'YWUwMGI2NGVlZWQyY2JlMmEwMzk0N2YwZWNjYTQzMzNlN2ZhZTJhY2VhNWU2NDNhY2E5OTI1MjEyNjNjMDgyYg==')
+    Authorize('06f534e2fe661fad',
+                'NjI1OTkzZDFhYzBiZGUyOGMzYzBkZDgzNGEwYjgzYjdmZDRmMzU1N2QxYjczZDI0YjdlYzJmNDU3MzhmMjdhNA==')
     print("=============================================================================")
     request = SMS.send_sms(
         message,

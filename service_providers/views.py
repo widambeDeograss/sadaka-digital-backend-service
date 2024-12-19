@@ -430,8 +430,6 @@ class SadakaListCreateView(ListCreateAPIView):
         else:
             return Sadaka.objects.none()
 
-
-    @method_decorator(cache_page(60 * 5))
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         serializer = SadakaSerializer(queryset, many=True)
@@ -495,7 +493,6 @@ class ZakaListCreateView(ListCreateAPIView):
         else:
             return Zaka.objects.none()
 
-    @method_decorator(cache_page(60 * 5))
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         serializer = ZakaSerializer(queryset, many=True)

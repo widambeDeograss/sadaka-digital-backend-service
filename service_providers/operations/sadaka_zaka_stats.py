@@ -181,7 +181,7 @@ class CheckZakaPresenceView(APIView):
                             status=status.HTTP_400_BAD_REQUEST)
 
     def get_zaka_card_details_for_month_year(self, month, year, church_id):
-        zaka_cards = CardsNumber.objects.filter(bahasha_type='zaka', mhumini__church=church_id).select_related('mhumini')
+        zaka_cards = CardsNumber.objects.filter(bahasha_type='zaka', church=church_id).select_related('mhumini')
         start_date = datetime(year, month, 1)
         end_date = datetime(year, month + 1, 1) if month < 12 else datetime(year + 1, 1, 1)
 
@@ -208,7 +208,12 @@ class CheckZakaPresenceView(APIView):
     def get_zaka_card_details_for_range(self, start_month, start_year, end_month, end_year, church_id):
         zaka_cards = CardsNumber.objects.filter(bahasha_type='zaka', mhumini__church=church_id).select_related(
             'mhumini')
-        start_date = datetime(start_year, start_month, 1)
+        month = int(start_month)
+        year = int(start_year)
+        end_month = int(end_month)
+        end_year = int(end_year)
+        # Generate the date ranges
+        start_date = datetime(year, month, 1)
         end_date = datetime(end_year, end_month + 1, 1) if end_month < 12 else datetime(end_year + 1, 1, 1)
 
         card_details = []
@@ -245,7 +250,7 @@ class CheckZakaPresenceView(APIView):
         return card_details
 
     def send_unpaid_zaka_reminders(self, month, year, church_id):
-        zaka_cards = CardsNumber.objects.filter(bahasha_type='zaka', mhumini__church=church_id).select_related('mhumini')
+        zaka_cards = CardsNumber.objects.filter(bahasha_type='zaka', church=church_id).select_related('mhumini')
         start_date = datetime(year, month, 1)
         end_date = datetime(year, month + 1, 1) if month < 12 else datetime(year + 1, 1, 1)
 

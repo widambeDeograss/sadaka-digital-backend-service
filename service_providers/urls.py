@@ -77,6 +77,7 @@ urlpatterns = [
     path('ahadi-stats', AhadiStats.as_view(), name='ahadi-stats'),
     # path('revenue-reports/', MonthlyReportViewSet.as_view({'get'}), name='revenue-stats'),
     path('matumizi-stats', ExpenseStats.as_view(), name='matumizi-stats'),
+    path('check-zaka/', CheckZakaPresenceView.as_view(), name='check-zaka'),
     path('wahumini-stats', WahuminiStatsView.as_view(), name='wahunini-stats'),
     path('mavuno/stats-and-chart/', MavunoStatsAndChartView.as_view(), name="mavuno_list_create"),
     path('mavuno-list-create', MavunoListCreateView.as_view(), name="mavuno_list_create"),
