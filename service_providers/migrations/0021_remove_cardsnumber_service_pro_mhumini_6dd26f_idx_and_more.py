@@ -7,7 +7,6 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('service_providers', '0020_mavuno_mavunopayments_and_more'),
     ]
 
     operations = [
