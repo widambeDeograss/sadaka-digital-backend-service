@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 
 from .operations.ahadi_stats import AhadiStats
 from .operations.dashboard_stats import ChurchDashboardStatsView
@@ -6,15 +6,19 @@ from .operations.matumizi_stats import ExpenseStats
 from .operations.mavuno_stats import MavunoStatsAndChartView
 from .operations.mchango_stats import MchangoStats, MchangoStatsView
 from .operations.sadaka_zaka_stats import SadakaZakaStats, CheckZakaPresenceView
+from .operations.send_dedicated_message import SendDedicatedMessage
 from .operations.wahumini_stats import WahuminiStatsView
+from .reports.expences import ExpenseReportView
+from .reports.revenue import RevenueReportView
+from .reports.wahumini import MuhuminiContributionsView
 from .views import *
 from .views import RevenueUpdateView
 from .operations.zaka_sadaka import ZakaMonthlyTotalsView, SadakaWeeklyView
 from  .operations.revenue import MonthlyReportViewSet
 from rest_framework.routers import DefaultRouter
-
 router = DefaultRouter()
 router.register(r'revenue-reports', MonthlyReportViewSet, basename='revenue-reports')
+# router.register(r'wahumini-statement', MuhuminiContributionsView, basename='statement')
 
 app_name = 'service_providers'
 
@@ -84,5 +88,9 @@ urlpatterns = [
     path('mavuno-retrieve-update-destroy/<int:pk>', MavunoRetrieveUpdateDestroyView.as_view(), name="mavuno_retrieve_update_destroy"),
     path('mavuno-payment-list-create', MavunoPaymentListCreateView.as_view(), name="mavuno_payment_list_create"),
     path('mavuno-payment-retrieve-update-destroy/<int:pk>', MavunoPaymentRetrieveUpdateDestroyView.as_view(), name="mavuno_payment_retrieve_update_destroy"),
-*router.urls,
+    path('reports/wahumini-statement', MuhuminiContributionsView.as_view(), ),
+    path('reports/revenue-statement', RevenueReportView.as_view(), ),
+    path('reports/expenses-statement', ExpenseReportView.as_view(), ),
+    path('sms/send-custom', SendDedicatedMessage.as_view(), ),
+    path('reports/', include(router.urls)),
 ]
