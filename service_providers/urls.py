@@ -9,6 +9,7 @@ from .operations.sadaka_zaka_stats import SadakaZakaStats, CheckZakaPresenceView
 from .operations.send_dedicated_message import SendDedicatedMessage
 from .operations.wahumini_stats import WahuminiStatsView
 from .reports.expences import ExpenseReportView
+from .reports.payment_type_revenue import RevenueByPaymentTypeView
 from .reports.revenue import RevenueReportView
 from .reports.wahumini import MuhuminiContributionsView
 from .views import *
@@ -21,7 +22,6 @@ router.register(r'revenue-reports', MonthlyReportViewSet, basename='revenue-repo
 # router.register(r'wahumini-statement', MuhuminiContributionsView, basename='statement')
 
 app_name = 'service_providers'
-
 
 urlpatterns = [
     path('system-package-list-create', SystemPackageListCreateView.as_view(), name="system_package_list_create"),
@@ -71,6 +71,7 @@ urlpatterns = [
          name="jumuiyaa_retrieve_update_destroy"),
     path('zaka/monthly-totals/', ZakaMonthlyTotalsView.as_view(), name='zaka-monthly-totals'),
     path('sadaka/monthly-totals/', SadakaWeeklyView.as_view(), name='sadaka-monthly-totals'),
+    path('create-sp-manager', CreateSpManager.as_view()),
     path('sp-managers/', SpManagerListView.as_view({'get': 'list', 'post':'create'}), name='spmanager-list'),
     path('sp-managers/<int:pk>/', SpManagerDetailView.as_view(), name='spmanager-detail'),
     path('mchango-details/<int:mchango_id>/', MchangoStatsView.as_view(), name='spmanager-detail'),
@@ -93,4 +94,5 @@ urlpatterns = [
     path('reports/expenses-statement', ExpenseReportView.as_view(), ),
     path('sms/send-custom', SendDedicatedMessage.as_view(), ),
     path('reports/', include(router.urls)),
+    path('revenue/<int:church_id>/', RevenueByPaymentTypeView.as_view(), name='revenue_by_payment_type'),
 ]

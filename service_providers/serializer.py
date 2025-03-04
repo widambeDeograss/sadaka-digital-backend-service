@@ -1,6 +1,7 @@
 from django.db import transaction
 from rest_framework import serializers
 
+from user_management.models import User
 from user_management.serializer import UserSerializer
 from .models import *
 
@@ -24,81 +25,15 @@ class ServiceProviderSerializer(serializers.ModelSerializer):
 
 
 class SpManagerSerializer(serializers.ModelSerializer):
-    sp_manager = UserSerializer(read_only=True)
-    # sp_manager = serializers.CharField()
+    # sp_manager = UserSerializer()
+    sp_manager = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+    sp_manager_details = UserSerializer(source='sp_manager', read_only=True)
+    church = serializers.PrimaryKeyRelatedField(queryset=ServiceProvider.objects.all())
+    church_details = ServiceProviderSerializer(source='church', read_only=True)
 
     class Meta:
         model = SpManagers
-        fields = ['id', 'sp_manager', 'church', 'inserted_by', 'deleted']
-        extra_kwargs = {
-            'sp_manager': {
-                'validators': []
-            }
-        }
-
-    @transaction.atomic
-    def create(self, validated_data):
-        try:
-            user_data = self.initial_data.get('sp_manager', None)
-            print("------------------------------------", user_data)
-
-            # Create the user with the correct role
-            user = UserSerializer().create(user_data)
-
-            # Check if this user is already a manager for another church
-            if SpManagers.objects.filter(
-                    sp_manager=user,
-                    deleted=False
-            ).exists():
-                raise serializers.ValidationError({
-                    "sp_manager": "This user is already a manager of another church"
-                })
-
-            # Check if the church already has the maximum number of managers
-            existing_managers = SpManagers.objects.filter(
-                church=validated_data['church'],
-                deleted=False
-            ).count()
-            max_managers = 5
-            if existing_managers >= max_managers:
-                raise serializers.ValidationError({
-                    "church": f"This church already has the maximum number of managers ({max_managers})"
-                })
-
-            # Create the SpManager record
-            sp_manager = SpManagers.objects.create(
-                sp_manager=user,
-                **validated_data
-            )
-
-            return sp_manager
-
-        except Exception as e:
-            raise serializers.ValidationError({
-                "error": f"Failed to create manager: {str(e)}"
-            })
-
-    @transaction.atomic
-    def update(self, instance, validated_data):
-        if 'sp_manager' in validated_data:
-            user_data = validated_data.pop('sp_manager')
-            user = instance.sp_manager
-
-            # Update user fields
-            for attr, value in user_data.items():
-                if attr != 'password':
-                    setattr(user, attr, value)
-                else:
-                    user.set_password(value)
-
-            user.save()
-
-        # Update SpManager fields
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-
-        instance.save()
-        return instance
+        fields = "__all__"
 
 
 class PackageSerializer(serializers.ModelSerializer):

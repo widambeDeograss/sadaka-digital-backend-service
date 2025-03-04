@@ -8,7 +8,7 @@ WITH all_revenues AS (
         revenue_type_record,
         date_received as transaction_date,
         payment_type_id
-    FROM revenue
+    FROM service_providers_revenue
 
     UNION ALL
 
@@ -16,15 +16,15 @@ WITH all_revenues AS (
     SELECT
         s.church_id,
         s.sadaka_amount as amount,
-        'sadaka' as revenue_type,
+        'Sadaka' as revenue_type,
         CASE
             WHEN st.name IS NOT NULL THEN st.name
             ELSE 'general_sadaka'
         END as revenue_type_record,
         s.date as transaction_date,
         s.payment_type_id
-    FROM sadaka s
-    LEFT JOIN sadaka_types st ON s.sadaka_type_id = st.id
+    FROM service_providers_sadaka s
+    LEFT JOIN service_providers_sadakatypes st ON s.sadaka_type_id = st.id
 
     UNION ALL
 
@@ -32,11 +32,11 @@ WITH all_revenues AS (
     SELECT
         church_id,
         zaka_amount as amount,
-        'zaka' as revenue_type,
-        'zaka_payment' as revenue_type_record,
+        'Zaka' as revenue_type,
+        'Zaka' as revenue_type_record,
         date as transaction_date,
         payment_type_id
-    FROM zaka
+    FROM service_providers_zaka
 
     UNION ALL
 
@@ -44,15 +44,15 @@ WITH all_revenues AS (
     SELECT
         m.church_id,
         mp.amount,
-        'mchango' as revenue_type,
+        'Michango' as revenue_type,
         CASE
             WHEN m.mchango_name IS NOT NULL THEN m.mchango_name
             ELSE 'general_mchango'
         END as revenue_type_record,
         mp.inserted_at::date as transaction_date,
         mp.payment_type_id
-    FROM mchango_payments mp
-    JOIN mchango m ON mp.mchango_id = m.id
+    FROM service_providers_mchangopayments mp
+    JOIN service_providers_mchango m ON mp.mchango_id = m.id
     WHERE m.status = true
 
     UNION ALL
@@ -61,15 +61,15 @@ WITH all_revenues AS (
     SELECT
         m.church_id,
         mp.amount,
-        'mavuno' as revenue_type,
+        'Mavuno' as revenue_type,
         CASE
             WHEN m.name IS NOT NULL THEN m.name
             ELSE 'general_mavuno'
         END as revenue_type_record,
         mp.inserted_at::date as transaction_date,
         mp.payment_type_id
-    FROM mavuno_payments mp
-    JOIN mavuno m ON mp.mavuno_id = m.id
+    FROM service_providers_mavunopayments mp
+    JOIN service_providers_mavuno m ON mp.mavuno_id = m.id
     WHERE m.status = true
 )
 SELECT
@@ -86,4 +86,4 @@ SELECT
     TO_CHAR(ar.transaction_date, 'Month') as month_name
 FROM all_revenues ar
 JOIN service_provider_table sp ON ar.church_id = sp.id
-JOIN payment_type pt ON ar.payment_type_id = pt.id;
+JOIN service_providers_paymenttype pt ON ar.payment_type_id = pt.id;

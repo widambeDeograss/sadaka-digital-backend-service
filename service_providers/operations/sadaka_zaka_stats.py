@@ -172,6 +172,9 @@ class CheckZakaPresenceView(APIView):
             # Send reminders
             reminder_status = self.send_unpaid_zaka_reminders(month, year, church_id)
             return Response(reminder_status, status=status.HTTP_200_OK)
+        elif query_type == "rangereminder":
+            reminder_status =  self.send_unpaid_zaka_reminders_for_range(start_month=month, start_year=year, end_month=end_month, end_year=end_year, church_id=church_id)
+            return Response(reminder_status, status=status.HTTP_200_OK)
         elif query_type == "range":
             # Check presence range
             card_details = self.get_zaka_card_details_for_range(month, year, end_month, end_year, church_id)
@@ -271,6 +274,52 @@ class CheckZakaPresenceView(APIView):
         for mhumini in unpaid_wahumini:
             print(mhumini.phone_number)
             message = f"Habari {mhumini.first_name} {mhumini.first_name} , huu ni ujumbe wa kukukumbusha kutoa zaka yako kwa mwezi wa {month} mwaka {year}. Asante kwa mchango wako na Mungu akubariki."
+            pushMessage(message, mhumini.phone_number)  # Assuming `phone_number` field exists
+
+        return {"status": "SMS reminders sent to unpaid wahumini"}
+
+
+    def send_unpaid_zaka_reminders_for_range(self, start_month, start_year, end_month, end_year, church_id):
+        zaka_cards = CardsNumber.objects.filter(bahasha_type='zaka', church=church_id).select_related('mhumini')
+        start_month = int(start_month)
+        start_year = int(start_year)
+        end_month = int(end_month)
+        end_year = int(end_year)
+
+        unpaid_wahumini = {}
+
+        for card in zaka_cards:
+            for year in range(start_year, end_year + 1):
+                for month in range(start_month, end_month + 1):
+                    if year == start_year and month < start_month:
+                        continue
+                    if year == end_year and month > end_month:
+                        break
+
+                    start_date = datetime(year, month, 1)
+                    end_date = datetime(year, month + 1, 1) if month < 12 else datetime(year + 1, 1, 1)
+
+                    has_entry = Zaka.objects.filter(
+                        bahasha=card,
+                        church=church_id,
+                        date__gte=start_date,
+                        date__lt=end_date
+                    ).exists()
+
+                    if not has_entry:
+                        if card.mhumini.id not in unpaid_wahumini:
+                            unpaid_wahumini[card.mhumini.id] = {
+                                "mhumini": card.mhumini,
+                                "unpaid_months": []
+                            }
+                        unpaid_wahumini[card.mhumini.id]["unpaid_months"].append((month, year))
+
+        # Send SMS to each unpaid wahumini
+        for mhumini_id, details in unpaid_wahumini.items():
+            mhumini = details["mhumini"]
+            unpaid_months = details["unpaid_months"]
+            unpaid_months_str = ", ".join([f"{month}/{year}" for month, year in unpaid_months])
+            message = f"Habari {mhumini.first_name} {mhumini.last_name}, huu ni ujumbe wa kukukumbusha kutoa zaka yako kwa miezi: {unpaid_months_str}. Asante kwa mchango wako na Mungu akubariki."
             pushMessage(message, mhumini.phone_number)  # Assuming `phone_number` field exists
 
         return {"status": "SMS reminders sent to unpaid wahumini"}

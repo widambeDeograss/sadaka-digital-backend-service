@@ -84,7 +84,7 @@ class SpManagers(models.Model):
         ]
 
     def __str__(self):
-        return f'{self.sp_manager.username} - {self.church.name}'
+        return f'{self.sp_manager.username} - {self.church.church_name}'
 
 
 
@@ -260,6 +260,7 @@ class Zaka(models.Model):
     payment_type = models.ForeignKey(PaymentType, on_delete=models.CASCADE)
     collected_by = models.CharField(max_length=255)
     date = models.DateField()
+    # date_received = models.DateField(auto_now=True)
     inserted_by = models.CharField(max_length=255)
     inserted_at = models.DateTimeField(auto_now_add=True)
     updated_by = models.CharField(max_length=255)

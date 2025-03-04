@@ -94,10 +94,7 @@ class RevenueReportView(View):
                 response_data['breakdown_by_type'][rev_type]['total'] += float(result['total_amount'])
                 response_data['breakdown_by_type'][rev_type]['records'].append(result)
 
-            return JsonResponse({
-                'status': 'success',
-                'data': response_data
-            })
+            return JsonResponse(response_data)
 
         except Exception as e:
             return JsonResponse({

@@ -1,6 +1,9 @@
+from io import BytesIO
+
+import pandas as pd
 from django.db import transaction
 from django.db.models import Q
-from django.http import Http404
+from django.http import Http404, HttpResponse
 from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
@@ -165,6 +168,65 @@ class PackageRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     #
     #     return queryset
 
+class CreateSpManager(APIView):
+    permission_classes = [IsAuthenticated]
+    @transaction.atomic
+    def post(self, request):
+        user_data = {
+            "username": request.data.get("username"),
+            "email":request.data.get('email'),
+            "firstname": request.data.get("first_name"),
+            "lastname": request.data.get("last_name"),
+            "fullname": request.data.get("full_name"),
+            "phone": request.data.get("phone"),
+            "password": request.data.get("password"),
+            "is_sp_manager":True,
+            "role": request.data.get("role"),
+        }
+
+        manager_data = {
+            "church": request.data.get("church"),
+            "inserted_by": request.data.get("inserted_by"),
+            "updated_by": request.data.get("updated_by"),
+            "active": request.data.get("active", True),
+        }
+        print(user_data)
+        try:
+            user_serializer =  UserSerializer(data=user_data)
+            print(user_serializer)
+            if not  user_serializer.is_valid():
+                return Response(
+                    {"message": "User validation failed", "errors": user_serializer.errors},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            user =  user_serializer.save()
+
+            print(user)
+
+            manager_data["sp_manager"] = user.id
+            manager_serializer =  SpManagerSerializer(data=manager_data)
+            if not manager_serializer.is_valid():
+                return Response(
+                    {"message": "Manager validation failed", "errors": user_serializer.errors},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            manager_serializer.save()
+            return Response(
+                {
+                    "message": "User and Marketing Team Member created successfully",
+                    "user": user_serializer.data,
+                    "marketing_team": manager_serializer.data,
+                },
+                status=status.HTTP_201_CREATED,
+            )
+        except Exception as e:
+            transaction.set_rollback(True)
+            return Response(
+                {"message": "An error occurred", "error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
 class SpManagerListView(viewsets.ModelViewSet):
     queryset = SpManagers.objects.filter(deleted=False)
     serializer_class = SpManagerSerializer
@@ -172,8 +234,11 @@ class SpManagerListView(viewsets.ModelViewSet):
 
     def get_queryset(self):
         church_id = self.request.query_params.get('church_id')
+        user_id =  self.request.query_params.get('user')
         if church_id:
             return SpManagers.objects.filter(church=church_id)
+        elif user_id:
+            return  SpManagers.objects.filter(sp_manager=user_id)
         return SpManagers.objects.all()
 
 class SpManagerDetailView(RetrieveUpdateDestroyAPIView):
@@ -271,10 +336,13 @@ class WahuminiListCreateView(ListCreateAPIView):
 
     def get_queryset(self):
         church_id = self.request.query_params.get('church_id')
+        jumuiya_id =  self.request.query_params.get('jumuiya')
         queryset = Wahumini.objects.all()
 
         if church_id:
             queryset = queryset.filter(church=church_id)
+        elif jumuiya_id:
+            queryset = queryset.filter(jumuiya=jumuiya_id)
 
         # Optimize database queries
         queryset = queryset.select_related('church') \
@@ -284,6 +352,30 @@ class WahuminiListCreateView(ListCreateAPIView):
 
     @method_decorator(cache_page(60 * 5))  # Cache for 5 minutes
     def list(self, request, *args, **kwargs):
+        export = request.query_params.get('export', None)
+
+        if export == 'excel':
+            # Fetch all data (bypass pagination)
+            queryset = self.get_queryset()
+            serializer = self.get_serializer(queryset, many=True)
+            data = serializer.data
+
+            # Convert the data to a DataFrame
+            df = pd.DataFrame(data)
+
+            # Create an Excel file in memory
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False, sheet_name='Sheet1')
+
+            # Prepare the response
+            output.seek(0)
+            response = HttpResponse(output.read(),
+                                    content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            response['Content-Disposition'] = 'attachment; filename=exported_data.xlsx'
+            return response
+
+        # Default behavior (paginated response)
         return super().list(request, *args, **kwargs)
 
 # class WahuminiListCreateView(ListCreateAPIView):
@@ -329,6 +421,28 @@ class CardsNumberListCreateView(ListCreateAPIView):
 
     # @method_decorator(cache_page(60 * 5))  # Cache for 5 minutes
     def list(self, request, *args, **kwargs):
+        export = request.query_params.get('export', None)
+
+        if export == 'excel':
+            # Fetch all data (bypass pagination)
+            queryset = self.get_queryset()
+            serializer = self.get_serializer(queryset, many=True)
+            data = serializer.data
+
+            # Convert the data to a DataFrame
+            df = pd.DataFrame(data)
+
+            # Create an Excel file in memory
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False, sheet_name='Sheet1')
+
+            # Prepare the response
+            output.seek(0)
+            response = HttpResponse(output.read(),
+                                    content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            response['Content-Disposition'] = 'attachment; filename=exported_data.xlsx'
+            return response
         return super().list(request, *args, **kwargs)
 
 
@@ -433,6 +547,28 @@ class SadakaListCreateView(ListCreateAPIView):
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         serializer = SadakaSerializer(queryset, many=True)
+        export = request.query_params.get('export', None)
+
+        if export == 'excel':
+            # Fetch all data (bypass pagination)
+            queryset = self.get_queryset()
+            serializer = self.get_serializer(queryset, many=True)
+            data = serializer.data
+
+            # Convert the data to a DataFrame
+            df = pd.DataFrame(data)
+
+            # Create an Excel file in memory
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False, sheet_name='Sheet1')
+
+            # Prepare the response
+            output.seek(0)
+            response = HttpResponse(output.read(),
+                                    content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            response['Content-Disposition'] = 'attachment; filename=exported_data.xlsx'
+            return response
         return Response(serializer.data)
 
 
@@ -496,6 +632,28 @@ class ZakaListCreateView(ListCreateAPIView):
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         serializer = ZakaSerializer(queryset, many=True)
+        export = request.query_params.get('export', None)
+
+        if export == 'excel':
+            # Fetch all data (bypass pagination)
+            queryset = self.get_queryset()
+            serializer = self.get_serializer(queryset, many=True)
+            data = serializer.data
+
+            # Convert the data to a DataFrame
+            df = pd.DataFrame(data)
+
+            # Create an Excel file in memory
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False, sheet_name='Sheet1')
+
+            # Prepare the response
+            output.seek(0)
+            response = HttpResponse(output.read(),
+                                    content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            response['Content-Disposition'] = 'attachment; filename=exported_data.xlsx'
+            return response
         return Response(serializer.data)
 
 
@@ -616,6 +774,28 @@ class MchangoListCreateView(ListCreateAPIView):
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         serializer = MchangoSerializer(queryset, many=True)
+        export = request.query_params.get('export', None)
+
+        if export == 'excel':
+            # Fetch all data (bypass pagination)
+            queryset = self.get_queryset()
+            serializer = self.get_serializer(queryset, many=True)
+            data = serializer.data
+
+            # Convert the data to a DataFrame
+            df = pd.DataFrame(data)
+
+            # Create an Excel file in memory
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False, sheet_name='Sheet1')
+
+            # Prepare the response
+            output.seek(0)
+            response = HttpResponse(output.read(),
+                                    content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            response['Content-Disposition'] = 'attachment; filename=exported_data.xlsx'
+            return response
         return Response(serializer.data)
 
 
@@ -652,6 +832,28 @@ class MchangoPaymentListCreateView(ListCreateAPIView):
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         serializer = MchangoPaymentSerializer(queryset, many=True)
+        export = request.query_params.get('export', None)
+
+        if export == 'excel':
+            # Fetch all data (bypass pagination)
+            queryset = self.get_queryset()
+            serializer = self.get_serializer(queryset, many=True)
+            data = serializer.data
+
+            # Convert the data to a DataFrame
+            df = pd.DataFrame(data)
+
+            # Create an Excel file in memory
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False, sheet_name='Sheet1')
+
+            # Prepare the response
+            output.seek(0)
+            response = HttpResponse(output.read(),
+                                    content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            response['Content-Disposition'] = 'attachment; filename=exported_data.xlsx'
+            return response
         return Response(serializer.data)
 
     @transaction.atomic
@@ -707,6 +909,33 @@ class AhadiListCreateView(ListCreateAPIView):
             return queryset
 
         return Ahadi.objects.none()
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = MchangoPaymentSerializer(queryset, many=True)
+        export = request.query_params.get('export', None)
+
+        if export == 'excel':
+            # Fetch all data (bypass pagination)
+            queryset = self.get_queryset()
+            serializer = self.get_serializer(queryset, many=True)
+            data = serializer.data
+
+            # Convert the data to a DataFrame
+            df = pd.DataFrame(data)
+
+            # Create an Excel file in memory
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False, sheet_name='Sheet1')
+
+            # Prepare the response
+            output.seek(0)
+            response = HttpResponse(output.read(),
+                                    content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            response['Content-Disposition'] = 'attachment; filename=exported_data.xlsx'
+            return response
+        return Response(serializer.data)
     
 
 class AhadiRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
@@ -728,6 +957,33 @@ class AhadiPaymentListCreateView(ListCreateAPIView):
         queryset = queryset.order_by('-created_at')
 
         return queryset
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = MchangoPaymentSerializer(queryset, many=True)
+        export = request.query_params.get('export', None)
+
+        if export == 'excel':
+            # Fetch all data (bypass pagination)
+            queryset = self.get_queryset()
+            serializer = self.get_serializer(queryset, many=True)
+            data = serializer.data
+
+            # Convert the data to a DataFrame
+            df = pd.DataFrame(data)
+
+            # Create an Excel file in memory
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False, sheet_name='Sheet1')
+
+            # Prepare the response
+            output.seek(0)
+            response = HttpResponse(output.read(),
+                                    content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            response['Content-Disposition'] = 'attachment; filename=exported_data.xlsx'
+            return response
+        return Response(serializer.data)
 
 
     @transaction.atomic
@@ -766,6 +1022,28 @@ class MavunoListCreateView(ListCreateAPIView):
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         serializer = MavunoSerializer(queryset, many=True)
+        export = request.query_params.get('export', None)
+
+        if export == 'excel':
+            # Fetch all data (bypass pagination)
+            queryset = self.get_queryset()
+            serializer = self.get_serializer(queryset, many=True)
+            data = serializer.data
+
+            # Convert the data to a DataFrame
+            df = pd.DataFrame(data)
+
+            # Create an Excel file in memory
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False, sheet_name='Sheet1')
+
+            # Prepare the response
+            output.seek(0)
+            response = HttpResponse(output.read(),
+                                    content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            response['Content-Disposition'] = 'attachment; filename=exported_data.xlsx'
+            return response
         return Response(serializer.data)
 
 
@@ -786,6 +1064,34 @@ class MavunoPaymentListCreateView(ListCreateAPIView):
         if mavuno_id:
             return MavunoPayments.objects.filter(mavuno_id=mavuno_id)
         return MavunoPayments.objects.all()
+
+    @method_decorator(cache_page(60 * 5))
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = MavunoSerializer(queryset, many=True)
+        export = request.query_params.get('export', None)
+
+        if export == 'excel':
+            # Fetch all data (bypass pagination)
+            queryset = self.get_queryset()
+            serializer = self.get_serializer(queryset, many=True)
+            data = serializer.data
+
+            # Convert the data to a DataFrame
+            df = pd.DataFrame(data)
+
+            # Create an Excel file in memory
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False, sheet_name='Sheet1')
+
+            # Prepare the response
+            output.seek(0)
+            response = HttpResponse(output.read(),
+                                    content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            response['Content-Disposition'] = 'attachment; filename=exported_data.xlsx'
+            return response
+        return Response(serializer.data)
 
     @transaction.atomic
     def perform_create(self, serializer):

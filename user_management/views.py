@@ -73,10 +73,17 @@ class LoginView(APIView):
                 "message": "Email and password are required."
             }, status=400)
 
+
         user = authenticate(request, email=email, password=password, backend=EmailBackend)
         print("==============================")
-        print(user)
+
         if user is not None:
+            if not user.user_active:
+                return Response({
+                    "success": False,
+                    "message": "Your account is inactive. Please contact support."
+                }, status=403)
+
             login(request, user)
 
             user_info = UserGetSerializer(instance=user, many=False).data
