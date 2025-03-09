@@ -120,6 +120,53 @@ class SadakaSerializer(serializers.ModelSerializer):
         fields = "__all__"
         # depth=2
 
+class SadakaExportSerializer(serializers.ModelSerializer):
+    bahasha_card_number = serializers.SerializerMethodField()
+    muumini = serializers.SerializerMethodField()
+    sadaka_type_name = serializers.SerializerMethodField()
+    sadaka_type_description = serializers.SerializerMethodField()
+    payment_type_name = serializers.SerializerMethodField()
+    jumuiya_details = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Sadaka
+        fields = [
+            'id', 'sadaka_amount', 'inserted_at', 'inserted_by',
+            'bahasha_card_number',
+            'sadaka_type_name', 'sadaka_type_description',
+            'payment_type_name', 'date',
+        ]
+
+    def get_bahasha_card_number(self, obj):
+        if obj.bahasha:
+            return obj.bahasha.card_no
+        return None
+
+    def get_muumini(self, obj):
+        if obj.bahasha:
+            return obj.bahasha.mhumini.first_name + " " + obj.bahasha.mhumini.last_name
+        return None
+
+    def get_sadaka_type_name(self, obj):
+        if obj.sadaka_type:
+            return obj.sadaka_type.name
+        return None
+
+    def get_sadaka_type_description(self, obj):
+        if obj.sadaka_type:
+            return obj.sadaka_type.description
+        return None
+
+    def get_payment_type_name(self, obj):
+        if obj.payment_type:
+            return obj.payment_type.name
+        return None
+
+    def get_payment_type_code(self, obj):
+        if obj.payment_type:
+            return obj.payment_type.description
+        return None
+
 
 class ZakaSerializer(serializers.ModelSerializer):
     bahasha = serializers.PrimaryKeyRelatedField(queryset=CardsNumber.objects.all(), required=False, allow_null=True)
@@ -129,6 +176,47 @@ class ZakaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Zaka
         fields = "__all__"
+
+
+class ZakaExportSerializer(serializers.ModelSerializer):
+    bahasha_card_number = serializers.SerializerMethodField()
+    muumini = serializers.SerializerMethodField()
+    payment_type_name = serializers.SerializerMethodField()
+    jumuiya_details = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Zaka
+        fields = [
+            'id',
+            'zaka_amount',
+            'date',
+            'bahasha_card_number',
+            'muumini',
+            'payment_type_name',
+            'jumuiya_details',
+            'inserted_at',
+            'inserted_by',
+        ]
+
+    def get_bahasha_card_number(self, obj):
+        if obj.bahasha:
+            return obj.bahasha.card_no
+        return None
+
+    def get_muumini(self, obj):
+        if obj.bahasha and obj.bahasha.mhumini:
+            return f"{obj.bahasha.mhumini.first_name} {obj.bahasha.mhumini.last_name}"
+        return None
+
+    def get_payment_type_name(self, obj):
+        if obj.payment_type:
+            return obj.payment_type.name
+        return None
+
+    def get_jumuiya_details(self, obj):
+        if obj.bahasha and obj.bahasha.mhumini and obj.bahasha.mhumini.jumuiya:
+            return obj.bahasha.mhumini.jumuiya.name
+        return None
 
 
 class PaymentTypeTransferSerializer(serializers.ModelSerializer):
@@ -164,7 +252,7 @@ class MchangoSerializer(serializers.ModelSerializer):
 
 
 class MchangoPaymentSerializer(serializers.ModelSerializer):
-    mhumini = serializers.PrimaryKeyRelatedField(queryset=Wahumini.objects.all())
+    # mhumini = serializers.PrimaryKeyRelatedField(queryset=Wahumini.objects.all())
     mchango = serializers.PrimaryKeyRelatedField(queryset=Mchango.objects.all())
     mchango_details = MchangoSerializer(source="mchango", read_only=True)
     mhumini_details = WahuminiSerializer(source='mhumini', read_only=True)
@@ -225,5 +313,41 @@ class MavunoPaymentSerializer(serializers.ModelSerializer):
     class Meta:
         model = MavunoPayments
         fields = "__all__"
+
+
+class MavunoPaymentsExportSerializer(serializers.ModelSerializer):
+    payment_type_name = serializers.SerializerMethodField()
+    mhumini_name = serializers.SerializerMethodField()
+    mavuno_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = MavunoPayments
+        fields = [
+            'id',
+            'amount',
+            'date',
+            'payment_type_name',
+            'mhumini_name',
+            'mavuno_name',
+            'inserted_at',
+            'inserted_by',
+        ]
+
+    def get_payment_type_name(self, obj):
+        if obj.payment_type:
+            return obj.payment_type.name
+        return None
+
+    def get_mhumini_name(self, obj):
+        if obj.mhumini:
+            return f"{obj.mhumini.first_name} {obj.mhumini.last_name}"
+        return None
+
+    def get_mavuno_name(self, obj):
+        if obj.mavuno:
+            return obj.mavuno.name
+        return None
+
+
 
         

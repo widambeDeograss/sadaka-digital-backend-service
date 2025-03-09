@@ -1,4 +1,5 @@
 from django.db.models import QuerySet
+from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated # type: ignore
 from rest_framework.response import Response # type: ignore
 from rest_framework.views import APIView # type: ignore
@@ -162,6 +163,8 @@ class ChangePasswordView(APIView):
 
 
 class ActivateDeactivateStaff(APIView):
+    permission_classes = [IsAuthenticated]  # Replace DjangoModelPermissionsOrAnonReadOnly with IsAuthenticated
+
     @staticmethod
     def get(request):
         data = request.data
@@ -170,9 +173,21 @@ class ActivateDeactivateStaff(APIView):
             user = User.objects.get(id=id)
             user.user_active = not user.user_active
             user.save()
-            return Response({"success": True, "message": "Staff activated successfully" if user.user_active else "Staff deactivated successfully."})
+            return Response(
+                {
+                    "success": True,
+                    "message": "Staff activated successfully" if user.user_active else "Staff deactivated successfully"
+                },
+                status=status.HTTP_200_OK
+            )
         except User.DoesNotExist:
-            return Response({"success": False, "message": "User not found."})
+            return Response(
+                {
+                    "success": False,
+                    "message": "User not found."
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
     
 
 class DeleteStaffView(APIView):

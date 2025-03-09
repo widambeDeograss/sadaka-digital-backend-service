@@ -121,6 +121,7 @@ class Kanda(models.Model):
         indexes = [
             models.Index(fields=['church', 'name'])
         ]
+        ordering = ['-created_at']
 
 
 class Jumuiya(models.Model):
@@ -143,6 +144,7 @@ class Jumuiya(models.Model):
         indexes = [
             models.Index(fields=['church', 'name'])
         ]
+        ordering = ['-created_at']
 
 class Wahumini(models.Model):
     GENDER_CHOICES = (
@@ -180,6 +182,7 @@ class Wahumini(models.Model):
         indexes = [
             models.Index(fields=['church', 'jumuiya', 'phone_number'])
         ]
+        ordering = ['-created_at']
 
 
 class CardsNumber(models.Model):
@@ -204,6 +207,7 @@ class CardsNumber(models.Model):
         indexes = [
             models.Index(fields=['mhumini', 'card_no', 'bahasha_type', 'church'])
         ]
+        ordering = ['-created_at']
 
 
 class PaymentType(models.Model):
@@ -251,6 +255,7 @@ class Sadaka(models.Model):
         indexes = [
             models.Index(fields=['church', 'bahasha', 'sadaka_type'])
         ]
+        ordering = ['-inserted_at']
 
 
 class Zaka(models.Model):
@@ -260,7 +265,7 @@ class Zaka(models.Model):
     payment_type = models.ForeignKey(PaymentType, on_delete=models.CASCADE)
     collected_by = models.CharField(max_length=255)
     date = models.DateField()
-    # date_received = models.DateField(auto_now=True)
+    date_received = models.DateField()
     inserted_by = models.CharField(max_length=255)
     inserted_at = models.DateTimeField(auto_now_add=True)
     updated_by = models.CharField(max_length=255)
@@ -273,6 +278,7 @@ class Zaka(models.Model):
         indexes = [
             models.Index(fields=['church', 'bahasha', 'payment_type'])
         ]
+        ordering = ['-inserted_at']
 
 
 class PaymentTypeTransfer(models.Model):
@@ -295,6 +301,7 @@ class PaymentTypeTransfer(models.Model):
 
 
 
+
 class Revenue(models.Model):
     amount = models.DecimalField(max_digits=20, decimal_places=2)
     church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE, db_index=True)
@@ -311,6 +318,7 @@ class Revenue(models.Model):
         indexes = [
             models.Index(fields=['church', 'date_received'])
         ]
+
 
     def __str__(self):
         return f"{self.revenue_type}: {self.amount} on {self.date_received}"
@@ -330,6 +338,7 @@ class ExpenseCategory(models.Model):
         indexes = [
             models.Index(fields=['church'])
         ]
+        ordering = ['-inserted_at']
 
 
     def __str__(self):
@@ -351,6 +360,7 @@ class Expense(models.Model):
         indexes = [
             models.Index(fields=['church', 'expense_category'])
         ]
+        ordering = ['-inserted_at']
 
     def __str__(self):
         return f"Expense: {self.amount} - {self.spent_by}"
@@ -375,6 +385,7 @@ class Mchango(models.Model):
         indexes = [
             models.Index(fields=['church', 'status'])
         ]
+        ordering = ['-inserted_at']
 
     def __str__(self):
         return f"Mchango: {self.mchango_name} collected {self.collected_amount}"
@@ -393,13 +404,14 @@ class MchangoPayments(models.Model):
         indexes = [
             models.Index(fields=['mchango', 'mhumini'])
         ]
+        ordering = ['-inserted_at']
 
 
 
 class Ahadi(models.Model):
     church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE, db_index=True)
     wahumini = models.ForeignKey('Wahumini', on_delete=models.CASCADE, related_name='ahadi', db_index=True)
-    mchango = models.ForeignKey('Mchango', on_delete=models.CASCADE, related_name='ahadi', null=True, blank=True )
+    mchango = models.ForeignKey('Mchango', on_delete=models.CASCADE, related_name='mchango', null=True, blank=True )
     amount = models.DecimalField(max_digits=20, decimal_places=2)
     paid_amount = models.DecimalField(max_digits=20, decimal_places=2)
     date_pledged = models.DateField()
@@ -413,6 +425,7 @@ class Ahadi(models.Model):
         indexes = [
             models.Index(fields=['wahumini', 'church'])
         ]
+        ordering = ['-created_at']
 
     def __str__(self):
         return f"Ahadi by {self.wahumini} for {self.mchango} - {self.amount}"
@@ -432,6 +445,7 @@ class AhadiPayments(models.Model):
         indexes = [
             models.Index(fields=['ahadi'])
         ]
+        ordering = ['-inserted_at']
 
 
 class Mavuno(models.Model):
@@ -455,6 +469,7 @@ class Mavuno(models.Model):
         indexes = [
             models.Index(fields=['jumuiya', 'church'])
         ]
+        ordering = ['-inserted_at']
 
 class MavunoPayments(models.Model):
     mavuno = models.ForeignKey(Mavuno, on_delete=models.CASCADE)
@@ -470,3 +485,4 @@ class MavunoPayments(models.Model):
         indexes = [
             models.Index(fields=['mavuno', 'payment_type'])
         ]
+        ordering = ['-inserted_at']

@@ -7,8 +7,11 @@ from django.utils import timezone
 from calendar import monthrange
 import json
 
+from rest_framework.permissions import IsAuthenticated
+
 
 class RevenueReportView(View):
+    permission_classes = [IsAuthenticated]
     def get(self, request):
         try:
             # Get parameters from request

@@ -1,5 +1,4 @@
 from io import BytesIO
-
 import pandas as pd
 from django.db import transaction
 from django.db.models import Q
@@ -19,6 +18,11 @@ from .serializer import *
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 
+
+class LargeResultsSetPagination(PageNumberPagination):
+    page_size = 1
+    page_size_query_param = 'page_size'
+    max_page_size = 1000
 
 class SystemPackageListCreateView(ListCreateAPIView):
     queryset = SystemPackage.objects.all()
@@ -522,37 +526,54 @@ class SadakaListCreateView(ListCreateAPIView):
     queryset = Sadaka.objects.all()
     serializer_class = SadakaSerializer
     permission_classes = [IsAuthenticated]
-
+    pagination_class = LargeResultsSetPagination
 
     def get_queryset(self):
         church_id = self.request.query_params.get('church_id')
         filter_type = self.request.query_params.get('filter')
-        year = self.request.query_params.get('year',
-                                             timezone.now().year)
-        if church_id:
-            queryset = Sadaka.objects.filter(church_id=church_id)
+        year = self.request.query_params.get('year', timezone.now().year)
+        queryset = Sadaka.objects.all()
 
+        if church_id:
+            queryset = queryset.filter(church_id=church_id)
+
+        if year:
             queryset = queryset.filter(inserted_at__year=year)
 
-            if filter_type == 'today':
-                today = timezone.now().date()
-                queryset = queryset.filter(inserted_at__date=today)
-            else:
-                queryset = queryset.order_by('-inserted_at')
-
-            return queryset
+        if filter_type == 'today':
+            today = timezone.now().date()
+            queryset = queryset.filter(inserted_at__date=today)
         else:
-            return Sadaka.objects.none()
+            queryset = queryset.order_by('-inserted_at')
+
+        return queryset
+
+
+    @property
+    def paginator(self):
+        if not hasattr(self, '_paginator'):
+            if self.pagination_class is None:
+                self._paginator = None
+            else:
+                self._paginator = self.pagination_class()
+        return self._paginator
+
+    def paginate_queryset(self, queryset):
+        if self.paginator is None:
+            return None
+        return self.paginator.paginate_queryset(queryset, self.request, view=self)
+
+    def get_paginated_response(self, data):
+        assert self.paginator is not None
+        return self.paginator.get_paginated_response(data)
 
     def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        serializer = SadakaSerializer(queryset, many=True)
         export = request.query_params.get('export', None)
 
         if export == 'excel':
-            # Fetch all data (bypass pagination)
+            # Use the filtered queryset from get_queryset
             queryset = self.get_queryset()
-            serializer = self.get_serializer(queryset, many=True)
+            serializer = SadakaExportSerializer(queryset, many=True)
             data = serializer.data
 
             # Convert the data to a DataFrame
@@ -565,11 +586,15 @@ class SadakaListCreateView(ListCreateAPIView):
 
             # Prepare the response
             output.seek(0)
-            response = HttpResponse(output.read(),
-                                    content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-            response['Content-Disposition'] = 'attachment; filename=exported_data.xlsx'
+            response = HttpResponse(
+                output.read(),
+                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+            response['Content-Disposition'] = 'attachment; filename=sadaka_export.xlsx'
             return response
-        return Response(serializer.data)
+
+        # If not exporting, use the standard list behavior
+        return super().list(request, *args, **kwargs)
 
 
 class SadakaRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
@@ -582,6 +607,7 @@ class ZakaListCreateView(ListCreateAPIView):
     queryset = Zaka.objects.all()
     serializer_class = ZakaSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = LargeResultsSetPagination
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -595,10 +621,10 @@ class ZakaListCreateView(ListCreateAPIView):
             year = zaka.date.year
 
             # Compose the SMS message in Swahili
-            message = (f"Habari {mhumini.first_name} {mhumini.last_name}, tumepokea zaka yako ya Tsh {amount_paid} kwa mwezi wa {month} {year}. \n"
-                       f"imepokelewa kwa {zaka.payment_type.name}"
-                       f" Asante kwa mchango wako, Mungu akubariki. ")
-            print(mhumini.phone_number)
+            message = (f"Tumsifu Yesu Kristu,\n Mpendwa {mhumini.first_name} {mhumini.last_name}, tumepokea zaka yako ya Tsh {amount_paid} kwa mwezi wa {month} {year}. \n"
+                       f"imepokelewa kwa {zaka.payment_type.name}, namba ya bahasha {zaka.bahasha.card_no}"
+                       f" Asante kwa mchango wako, Mungu akubariki.\n KAMATI YA ZAKA, PAROKIA YA BMC MAKABE. ")
+            print(message)
             # Send the SMS using your existing SMS method
             pushMessage(message, mhumini.phone_number)
 
@@ -629,15 +655,31 @@ class ZakaListCreateView(ListCreateAPIView):
         else:
             return Zaka.objects.none()
 
+    @property
+    def paginator(self):
+        if not hasattr(self, '_paginator'):
+            if self.pagination_class is None:
+                self._paginator = None
+            else:
+                self._paginator = self.pagination_class()
+        return self._paginator
+
+    def paginate_queryset(self, queryset):
+        if self.paginator is None:
+            return None
+        return self.paginator.paginate_queryset(queryset, self.request, view=self)
+
+    def get_paginated_response(self, data):
+        assert self.paginator is not None
+        return self.paginator.get_paginated_response(data)
+
     def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        serializer = ZakaSerializer(queryset, many=True)
         export = request.query_params.get('export', None)
 
         if export == 'excel':
-            # Fetch all data (bypass pagination)
+            # Use the filtered queryset from get_queryset
             queryset = self.get_queryset()
-            serializer = self.get_serializer(queryset, many=True)
+            serializer = ZakaExportSerializer(queryset, many=True)
             data = serializer.data
 
             # Convert the data to a DataFrame
@@ -650,11 +692,15 @@ class ZakaListCreateView(ListCreateAPIView):
 
             # Prepare the response
             output.seek(0)
-            response = HttpResponse(output.read(),
-                                    content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-            response['Content-Disposition'] = 'attachment; filename=exported_data.xlsx'
+            response = HttpResponse(
+                output.read(),
+                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+            response['Content-Disposition'] = 'attachment; filename=zaka_export.xlsx'
             return response
-        return Response(serializer.data)
+
+        # If not exporting, use the standard list behavior
+        return super().list(request, *args, **kwargs)
 
 
 class ZakaRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
@@ -770,7 +816,7 @@ class MchangoListCreateView(ListCreateAPIView):
             return Mchango.objects.filter(church=church_id)
         return Mchango.objects.all()
     
-    @method_decorator(cache_page(60 * 5))
+
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         serializer = MchangoSerializer(queryset, many=True)
@@ -810,7 +856,6 @@ class MchangoPaymentListCreateView(ListCreateAPIView):
     serializer_class = MchangoPaymentSerializer
     permission_classes = [IsAuthenticated]
 
-    @method_decorator(cache_page(60 * 15))
     def get_queryset(self):
         mchango_id = self.request.query_params.get('mchango_id')
 
@@ -832,28 +877,6 @@ class MchangoPaymentListCreateView(ListCreateAPIView):
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         serializer = MchangoPaymentSerializer(queryset, many=True)
-        export = request.query_params.get('export', None)
-
-        if export == 'excel':
-            # Fetch all data (bypass pagination)
-            queryset = self.get_queryset()
-            serializer = self.get_serializer(queryset, many=True)
-            data = serializer.data
-
-            # Convert the data to a DataFrame
-            df = pd.DataFrame(data)
-
-            # Create an Excel file in memory
-            output = BytesIO()
-            with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                df.to_excel(writer, index=False, sheet_name='Sheet1')
-
-            # Prepare the response
-            output.seek(0)
-            response = HttpResponse(output.read(),
-                                    content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-            response['Content-Disposition'] = 'attachment; filename=exported_data.xlsx'
-            return response
         return Response(serializer.data)
 
     @transaction.atomic
@@ -874,7 +897,6 @@ class MchangoPaymentListCreateView(ListCreateAPIView):
         # Update the collected_amount
         mchango.collected_amount += mchango_payment.amount
         mchango.save()
-
 
 class MchangoPaymentRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     queryset = MchangoPayments.objects.all()
@@ -912,7 +934,7 @@ class AhadiListCreateView(ListCreateAPIView):
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
-        serializer = MchangoPaymentSerializer(queryset, many=True)
+        serializer = AhadiSerializer(queryset, many=True)
         export = request.query_params.get('export', None)
 
         if export == 'excel':
@@ -992,9 +1014,12 @@ class AhadiPaymentListCreateView(ListCreateAPIView):
         # Save the Ahadi payment instance
         ahadi_payment = serializer.save()
 
+
         try:
+
             # Lock the Mchango instance to prevent race conditions
             ahadi = Ahadi.objects.select_for_update().get(id=ahadi_payment.ahadi.id)
+
         except Ahadi.DoesNotExist:
             # If the Mchango does not exist, rollback the transaction
             raise serializers.ValidationError("Ahadi does not exist.")
@@ -1003,12 +1028,55 @@ class AhadiPaymentListCreateView(ListCreateAPIView):
         ahadi.paid_amount += ahadi_payment.amount
         ahadi.save()
 
+        if ahadi.mchango:
+          mchango_payment =   MchangoPayments.objects.create(
+                mchango=ahadi.mchango,
+                amount=ahadi_payment.amount,
+                payment_type=ahadi_payment.payment_type,
+                mhumini=ahadi_payment.mhumini,
+                inserted_by=ahadi_payment.inserted_by,
+                updated_by=ahadi_payment.updated_by,
+            )
+          mchango =  Mchango.objects.get(id=ahadi.mchango.id)
+          mchango.collected_amount += ahadi_payment.amount
+          mchango.save()
+          Revenue.objects.create(
+              amount=ahadi_payment.amount,
+              church=ahadi.church,
+              payment_type=ahadi_payment.payment_type,
+              revenue_type="Michango",
+              revenue_type_record=mchango_payment.id,
+              date_received=ahadi_payment.inserted_at.date(),
+              created_by=ahadi_payment.inserted_by,
+              updated_by=ahadi_payment.updated_by,
+          )
+        else:
+            # If no Mchango, create a Sadaka record
+           sadaka = Sadaka.objects.create(
+                church=ahadi.church,
+                sadaka_amount=ahadi_payment.amount,
+                collected_by=ahadi_payment.inserted_by,  # Assuming inserted_by is the collector
+                payment_type=ahadi_payment.payment_type,
+                date=ahadi_payment.inserted_at.date(),  # Use the payment date
+                inserted_by=ahadi_payment.inserted_by,
+                updated_by=ahadi_payment.updated_by,
+            )
+           Revenue.objects.create(
+                amount=ahadi_payment.amount,
+                church=ahadi.church,
+                payment_type=ahadi_payment.payment_type,
+                revenue_type="Sadaka",
+                revenue_type_record=sadaka.id,
+                date_received=ahadi_payment.inserted_at.date(),
+                created_by=ahadi_payment.inserted_by,
+                updated_by=ahadi_payment.updated_by,
+            )
         return ahadi_payment
 
 
 
 class MavunoListCreateView(ListCreateAPIView):
-    queryset = Mavuno.objects.all()
+    queryset = Mavuno.objects.all().order_by('-inserted_at')
     serializer_class = MavunoSerializer
     permission_classes = [IsAuthenticated]
 
@@ -1046,8 +1114,6 @@ class MavunoListCreateView(ListCreateAPIView):
             return response
         return Response(serializer.data)
 
-
-
 class MavunoRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     queryset = Mavuno.objects.all()
     serializer_class = MavunoSerializer
@@ -1058,6 +1124,7 @@ class MavunoPaymentListCreateView(ListCreateAPIView):
     queryset = MavunoPayments.objects.all()
     serializer_class = MavunoPaymentSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = LargeResultsSetPagination
 
     def get_queryset(self):
         mavuno_id = self.request.query_params.get('mavuno_id')
@@ -1065,10 +1132,10 @@ class MavunoPaymentListCreateView(ListCreateAPIView):
             return MavunoPayments.objects.filter(mavuno_id=mavuno_id)
         return MavunoPayments.objects.all()
 
-    @method_decorator(cache_page(60 * 5))
+
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
-        serializer = MavunoSerializer(queryset, many=True)
+        serializer = MavunoPaymentSerializer(queryset, many=True)
         export = request.query_params.get('export', None)
 
         if export == 'excel':
@@ -1099,10 +1166,24 @@ class MavunoPaymentListCreateView(ListCreateAPIView):
 
         try:
             mavuno = Mavuno.objects.select_for_update().get(id=mavuno_payment.mavuno_id)
+
         except Mavuno.DoesNotExist:
             raise serializers.ValidationError("Mavuno does not exist.")
 
         mavuno.collected_amount += mavuno_payment.amount
+        print(mavuno.jumuiya.namba_ya_simu)
+        pushMessage(
+            f"Tumsifu Yesu Kristu,\n Mavuno ya Mpendwa {mavuno_payment.mhumini.first_name + " " + mavuno_payment.mhumini.last_name} kiasi cha Tsh {mavuno_payment.amount} \n"
+            f"Yamepokelewa kwa {mavuno_payment.payment_type.name}, Jumuiya {mavuno.jumuiya.name}. Jumla ya mavuno {mavuno.collected_amount} \n"
+            f"Mungu akubariki.",
+            mavuno.jumuiya.address,
+        )
+        pushMessage(
+            f"Tumsifu Yesu Kristu,\n Mavuno ya Mpendwa {mavuno_payment.mhumini.first_name + " " + mavuno_payment.mhumini.last_name} kiasi cha Tsh {mavuno_payment.amount} \n"
+            f"Yamepokelewa kwa {mavuno_payment.payment_type.name}, Jumuiya {mavuno.jumuiya.name}. Jumla ya mavuno {mavuno.collected_amount} \n"
+            f"Mungu akubariki.",
+            mavuno.jumuiya.namba_ya_simu,
+        )
         mavuno.save()
 
 

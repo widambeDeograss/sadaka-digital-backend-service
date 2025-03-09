@@ -6,10 +6,13 @@ from dateutil.relativedelta import relativedelta
 from calendar import monthrange
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework.permissions import IsAuthenticated
 
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ExpenseReportView(View):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
         try:
             # Get parameters from request

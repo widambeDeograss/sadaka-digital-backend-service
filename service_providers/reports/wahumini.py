@@ -3,9 +3,12 @@ from django.http import JsonResponse
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from django.views import View
+from rest_framework.permissions import IsAuthenticated
 
 
 class MuhuminiContributionsView(View):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
         muhumini_id = request.GET.get('muhumini_id')
         jumuiya_id = request.GET.get('jumuiya_id')
