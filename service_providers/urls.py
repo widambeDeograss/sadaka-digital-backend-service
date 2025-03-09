@@ -13,7 +13,6 @@ from .reports.payment_type_revenue import RevenueByPaymentTypeView
 from .reports.revenue import RevenueReportView
 from .reports.wahumini import MuhuminiContributionsView
 from .views import *
-from .views import RevenueUpdateView
 from .operations.zaka_sadaka import ZakaMonthlyTotalsView, SadakaWeeklyView
 from  .operations.revenue import MonthlyReportViewSet
 from rest_framework.routers import DefaultRouter
