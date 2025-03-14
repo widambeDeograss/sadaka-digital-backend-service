@@ -1180,10 +1180,10 @@ class MavunoPaymentListCreateView(ListCreateAPIView):
         )
         pushMessage(
             f"Tumsifu Yesu Kristu,\n Mavuno ya Mpendwa {mavuno_payment.mhumini.first_name + ' ' + mavuno_payment.mhumini.last_name} kiasi cha Tsh {mavuno_payment.amount} \n"
-f"Yamepokelewa kwa {mavuno_payment.payment_type.name}, Jumuiya {mavuno.jumuiya.name}. Jumla ya mavuno {mavuno.collected_amount}. \nMungu akubariki.",
-
-            mavuno.jumuiya.namba_ya_simu,
+                    f"Yamepokelewa kwa {mavuno_payment.payment_type.name}, Jumuiya {mavuno.jumuiya.name}. Jumla ya mavuno {mavuno.collected_amount}. \nMungu akubariki.",
+                    mavuno.jumuiya.namba_ya_simu,
         )
+
         mavuno.save()
 
 

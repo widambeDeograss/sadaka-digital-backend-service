@@ -26,13 +26,13 @@ SELECT
         WHEN a.amount = COALESCE(SUM(ap.amount), 0) THEN 100
         ELSE ROUND((COALESCE(SUM(ap.amount), 0) * 100.0 / NULLIF(a.amount, 0)), 2)
     END as completion_percentage
-FROM ahadi a
-JOIN wahumini w ON a.wahumini_id = w.id
-LEFT JOIN mchango m ON a.mchango_id = m.id
+FROM service_providers_ahadi a
+JOIN service_providers_wahumini w ON a.wahumini_id = w.id
+LEFT JOIN service_providers_mchango m ON a.mchango_id = m.id
 JOIN service_provider_table sp ON a.church_id = sp.id
-LEFT JOIN jumuiya j ON w.jumuiya_id = j.id
-LEFT JOIN kanda k ON j.kanda_id = k.id
-LEFT JOIN ahadi_payments ap ON a.id = ap.ahadi_id
+LEFT JOIN service_providers_jumuiya j ON w.jumuiya_id = j.id
+LEFT JOIN service_providers_kanda k ON j.kanda_id = k.id
+LEFT JOIN service_providers_ahadipayments ap ON a.id = ap.ahadi_id
 GROUP BY
     a.id,
     a.church_id,
@@ -63,9 +63,9 @@ SELECT
     EXTRACT(MONTH FROM ap.inserted_at) as month,
     EXTRACT(YEAR FROM ap.inserted_at) as year,
     TO_CHAR(ap.inserted_at, 'Month') as month_name
-FROM ahadi_payments ap
-JOIN ahadi a ON ap.ahadi_id = a.id
-JOIN wahumini w ON ap.mhumini_id = w.id
-LEFT JOIN mchango m ON a.mchango_id = m.id
-LEFT JOIN jumuiya j ON w.jumuiya_id = j.id
-JOIN payment_type pt ON ap.payment_type_id = pt.id;
+FROM service_providers_ahadipayments ap
+JOIN service_providers_ahadi a ON ap.ahadi_id = a.id
+JOIN service_providers_wahumini w ON ap.mhumini_id = w.id
+LEFT JOIN service_providers_mchango m ON a.mchango_id = m.id
+LEFT JOIN service_providers_jumuiya j ON w.jumuiya_id = j.id
+JOIN service_providers_paymenttype pt ON ap.payment_type_id = pt.id;

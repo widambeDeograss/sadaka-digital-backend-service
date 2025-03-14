@@ -12,8 +12,8 @@ WITH all_contributions AS (
         z.payment_type_id,
         NULL::numeric as pledge_amount,
         NULL::date as due_date
-    FROM zaka z
-    JOIN cards_number cn ON z.bahasha_id = cn.id
+    FROM service_providers_zaka z
+    JOIN service_providers_cardsnumber cn ON z.bahasha_id = cn.id
     WHERE cn.bahasha_type = 'zaka'
 
     UNION ALL
@@ -29,9 +29,9 @@ WITH all_contributions AS (
         s.payment_type_id,
         NULL::numeric as pledge_amount,
         NULL::date as due_date
-    FROM sadaka s
-    JOIN cards_number cn ON s.bahasha_id = cn.id
-    LEFT JOIN sadaka_types st ON s.sadaka_type_id = st.id
+    FROM service_providers_sadaka s
+    JOIN service_providers_cardsnumber cn ON s.bahasha_id = cn.id
+    LEFT JOIN service_providers_sadakatypes st ON s.sadaka_type_id = st.id
     WHERE cn.bahasha_type = 'sadaka'
 
     UNION ALL
@@ -47,8 +47,8 @@ WITH all_contributions AS (
         mp.payment_type_id,
         m.target_amount as pledge_amount,
         NULL::date as due_date
-    FROM mchango_payments mp
-    JOIN mchango m ON mp.mchango_id = m.id
+    FROM service_providers_mchangopayments mp
+    JOIN service_providers_mchango m ON mp.mchango_id = m.id
     WHERE m.status = true
 
     UNION ALL
@@ -64,8 +64,8 @@ WITH all_contributions AS (
         mp.payment_type_id,
         m.year_target_amount as pledge_amount,
         NULL::date as due_date
-    FROM mavuno_payments mp
-    JOIN mavuno m ON mp.mavuno_id = m.id
+    FROM service_providers_mavunopayments mp
+    JOIN service_providers_mavuno m ON mp.mavuno_id = m.id
     WHERE m.status = true
 
     UNION ALL
@@ -81,9 +81,9 @@ WITH all_contributions AS (
         ap.payment_type_id,
         a.amount as pledge_amount,
         a.due_date
-    FROM ahadi_payments ap
-    JOIN ahadi a ON ap.ahadi_id = a.id
-    LEFT JOIN mchango m ON a.mchango_id = m.id
+    FROM service_providers_ahadipayments ap
+    JOIN service_providers_ahadi a ON ap.ahadi_id = a.id
+    LEFT JOIN service_providers_mchango m ON a.mchango_id = m.id
 )
 SELECT
     ac.*,
@@ -100,11 +100,11 @@ SELECT
     EXTRACT(YEAR FROM ac.transaction_date) as year,
     TO_CHAR(ac.transaction_date, 'Month') as month_name
 FROM all_contributions ac
-JOIN wahumini w ON ac.mhumini_id = w.id
-LEFT JOIN jumuiya j ON w.jumuiya_id = j.id
-LEFT JOIN kanda k ON j.kanda_id = k.id
+JOIN service_providers_wahumini w ON ac.mhumini_id = w.id
+LEFT JOIN service_providers_jumuiya j ON w.jumuiya_id = j.id
+LEFT JOIN service_providers_kanda k ON j.kanda_id = k.id
 JOIN service_provider_table sp ON ac.church_id = sp.id
-JOIN payment_type pt ON ac.payment_type_id = pt.id;
+JOIN service_providers_paymenttype pt ON ac.payment_type_id = pt.id;
 
 -- Create a summary view for quick totals
 CREATE OR REPLACE VIEW muhumini_contribution_summary_view AS

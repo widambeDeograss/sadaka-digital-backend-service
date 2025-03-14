@@ -1,5 +1,4 @@
 from django.urls import path, include
-
 from .operations.ahadi_stats import AhadiStats
 from .operations.dashboard_stats import ChurchDashboardStatsView
 from .operations.matumizi_stats import ExpenseStats
@@ -16,6 +15,7 @@ from .views import *
 from .operations.zaka_sadaka import ZakaMonthlyTotalsView, SadakaWeeklyView
 from  .operations.revenue import MonthlyReportViewSet
 from rest_framework.routers import DefaultRouter
+
 router = DefaultRouter()
 router.register(r'revenue-reports', MonthlyReportViewSet, basename='revenue-reports')
 # router.register(r'wahumini-statement', MuhuminiContributionsView, basename='statement')
@@ -93,5 +93,5 @@ urlpatterns = [
     path('reports/expenses-statement', ExpenseReportView.as_view(), ),
     path('sms/send-custom', SendDedicatedMessage.as_view(), ),
     path('reports/', include(router.urls)),
-    path('revenue/<int:church_id>/', RevenueByPaymentTypeView.as_view(), name='revenue_by_payment_type'),
+    path('revenue/<int:church_id>/', RevenueByPaymentTypeView.as_view(), name='revenue_by_payment_type')
 ]

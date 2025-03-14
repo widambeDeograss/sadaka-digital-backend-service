@@ -11,6 +11,6 @@ SELECT
     EXTRACT(MONTH FROM e.date) as month,
     EXTRACT(YEAR FROM e.date) as year,
     TO_CHAR(e.date, 'Month') as month_name
-FROM expense e
-JOIN expense_category ec ON e.expense_category_id = ec.id
+FROM service_providers_expense e
+JOIN service_providers_expensecategory ec ON e.expense_category_id = ec.id
 JOIN service_provider_table sp ON e.church_id = sp.id;
