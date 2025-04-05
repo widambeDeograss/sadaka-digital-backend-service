@@ -17,6 +17,12 @@ from .operations.message import pushMessage
 from .serializer import *
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
+from datetime import datetime
+from io import BytesIO
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
 
 
 class LargeResultsSetPagination(PageNumberPagination):
@@ -602,12 +608,16 @@ class SadakaRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     serializer_class = SadakaSerializer
     permission_classes = [IsAuthenticated]
 
-
 class ZakaListCreateView(ListCreateAPIView):
     queryset = Zaka.objects.all()
     serializer_class = ZakaSerializer
     permission_classes = [IsAuthenticated]
     pagination_class = LargeResultsSetPagination
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['bahasha__mhumini__first_name', 'bahasha__mhumini__last_name', 
+                     'bahasha__card_no', 'bahasha__mhumini__jumuiya__name']
+    ordering_fields = ['date', 'zaka_amount', 'inserted_at']
+    ordering = ['-inserted_at']
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -621,39 +631,68 @@ class ZakaListCreateView(ListCreateAPIView):
             year = zaka.date.year
 
             # Compose the SMS message in Swahili
-            message = (f"Tumsifu Yesu Kristu,\n Mpendwa {mhumini.first_name} {mhumini.last_name}, tumepokea zaka yako ya Tsh {amount_paid} kwa mwezi wa {month} {year}. \n"
-                       f"imepokelewa kwa {zaka.payment_type.name}, namba ya bahasha {zaka.bahasha.card_no}"
-                       f" Asante kwa mchango wako, Mungu akubariki.\n KAMATI YA ZAKA, PAROKIA YA BMC MAKABE. ")
+            message = (f"Kristu,\nMpendwa {mhumini.first_name} {mhumini.last_name}, tumepokea zaka yako ya Tsh {amount_paid} kwa mwezi {month} {year}."
+                       f"Mungu akubariki.\nMawasiliano: 0677050573"
+                       f"\nPAROKIA YA BMC MAKABE.")
             print(message)
             # Send the SMS using your existing SMS method
             pushMessage(message, mhumini.phone_number)
-
-
         else:
             pass
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
-
     def get_queryset(self):
+        queryset = Zaka.objects.all()
+        
+        # Church filter
         church_id = self.request.query_params.get('church_id')
-        filter_type = self.request.query_params.get('filter')
-        year = self.request.query_params.get('year',
-                                             timezone.now().year)
         if church_id:
-            queryset = Zaka.objects.filter(church_id=church_id)
-
-            queryset = queryset.filter(inserted_at__year=year)
-
-            if filter_type == 'today':
-                today = timezone.now().date()
-                queryset = queryset.filter(inserted_at__date=today)
-            else:
-                queryset = queryset.order_by('-inserted_at')
-
-            return queryset
+            queryset = queryset.filter(church_id=church_id)
         else:
             return Zaka.objects.none()
+        
+        # Date filters
+        filter_type = self.request.query_params.get('filter')
+        year = self.request.query_params.get('year', timezone.now().year)
+        from_date = self.request.query_params.get('from_date')
+        to_date = self.request.query_params.get('to_date')
+        
+        # Filter by year if no specific date range is provided
+        if not (from_date or to_date):
+            queryset = queryset.filter(inserted_at__year=year)
+        
+        # Apply date range filters if provided
+        if from_date:
+            try:
+                from_date = datetime.strptime(from_date, '%Y-%m-%d').date()
+                queryset = queryset.filter(inserted_at__date__gte=from_date)
+            except ValueError:
+                pass
+                
+        if to_date:
+            try:
+                to_date = datetime.strptime(to_date, '%Y-%m-%d').date()
+                queryset = queryset.filter(inserted_at__date__lte=to_date)
+            except ValueError:
+                pass
+        
+        # Quick filters
+        if filter_type == 'today':
+            today = timezone.now().date()
+            queryset = queryset.filter(inserted_at__date=today)
+        
+        # Search by mhumini name, card_no, jumuiya
+        search_query = self.request.query_params.get('search')
+        if search_query:
+            queryset = queryset.filter(
+                Q(bahasha__mhumini__first_name__icontains=search_query) |
+                Q(bahasha__mhumini__last_name__icontains=search_query) |
+                Q(bahasha__card_no__icontains=search_query) |
+                Q(bahasha__mhumini__jumuiya__name__icontains=search_query)
+            )
+            
+        return queryset.order_by('-inserted_at')
 
     @property
     def paginator(self):
@@ -675,33 +714,78 @@ class ZakaListCreateView(ListCreateAPIView):
 
     def list(self, request, *args, **kwargs):
         export = request.query_params.get('export', None)
+        queryset = self.filter_queryset(self.get_queryset())
 
-        if export == 'excel':
-            # Use the filtered queryset from get_queryset
-            queryset = self.get_queryset()
+        if export:
             serializer = ZakaExportSerializer(queryset, many=True)
             data = serializer.data
-
+            
             # Convert the data to a DataFrame
             df = pd.DataFrame(data)
+            
+            if export == 'excel':
+                # Create an Excel file in memory
+                output = BytesIO()
+                with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                    df.to_excel(writer, index=False, sheet_name='Zaka Records')
+                
+                # Prepare the response
+                output.seek(0)
+                response = HttpResponse(
+                    output.read(),
+                    content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                )
+                response['Content-Disposition'] = 'attachment; filename=zaka_export.xlsx'
+                return response
+                
+            elif export == 'pdf':
+                # Create a PDF file
+                response = HttpResponse(content_type='application/pdf')
+                response['Content-Disposition'] = 'attachment; filename=zaka_export.pdf'
+                
+                # Create the PDF object using ReportLab
+                buffer = BytesIO()
+                doc = SimpleDocTemplate(buffer, pagesize=landscape(letter))
+                elements = []
+                
+                # Add title
+                styles = getSampleStyleSheet()
+                elements.append(Paragraph("Zaka Records Report", styles['Title']))
+                elements.append(Spacer(1, 12))
+                
+                # Create table data
+                table_data = [df.columns.tolist()]  # Header row
+                for _, row in df.iterrows():
+                    table_data.append(row.tolist())
+                
+                # Create the table
+                table = Table(table_data)
+                table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ]))
+                
+                elements.append(table)
+                doc.build(elements)
+                
+                pdf = buffer.getvalue()
+                buffer.close()
+                response.write(pdf)
+                return response
+        
+        # If not exporting, use standard list behavior with pagination
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
 
-            # Create an Excel file in memory
-            output = BytesIO()
-            with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                df.to_excel(writer, index=False, sheet_name='Sheet1')
-
-            # Prepare the response
-            output.seek(0)
-            response = HttpResponse(
-                output.read(),
-                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            )
-            response['Content-Disposition'] = 'attachment; filename=zaka_export.xlsx'
-            return response
-
-        # If not exporting, use the standard list behavior
-        return super().list(request, *args, **kwargs)
-
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
 class ZakaRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     queryset = Zaka.objects.all()
