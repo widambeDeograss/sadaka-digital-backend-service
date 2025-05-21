@@ -75,6 +75,14 @@ class SystemPermissionSerializer(serializers.ModelSerializer):
         fields = "__all__"
         depth = 2
 
+    def create(self, validated_data):
+        return SystemPermission.objects.create(**validated_data)
+
+    def to_internal_value(self, data):
+        if isinstance(data, list):
+            return [super().to_internal_value(item) for item in data]
+        return super().to_internal_value(data)
+
 class SystemRoleSerializer(serializers.ModelSerializer):
     permissions = SystemPermissionSerializer(many=True, read_only=True)
     class Meta:

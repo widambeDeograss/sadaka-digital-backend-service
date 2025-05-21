@@ -221,6 +221,23 @@ class SystemPermissionListCreateView(ListCreateAPIView):
     serializer_class = SystemPermissionSerializer
     permission_classes = [AllowAny]
 
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data, many=isinstance(request.data, list))
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    def perform_create(self, serializer):
+        if isinstance(serializer.validated_data, list):
+            # Bulk create
+            SystemPermission.objects.bulk_create([
+                SystemPermission(**item) for item in serializer.validated_data
+            ])
+        else:
+            # Single create
+            serializer.save()
+
 
 class SystemPermissionRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     queryset = SystemPermission.objects.all()
