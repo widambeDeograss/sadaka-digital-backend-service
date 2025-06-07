@@ -342,7 +342,18 @@ class WahuminiPagination(PageNumberPagination):
 class WahuminiListCreateView(ListCreateAPIView):
     serializer_class = WahuminiSerializer
     permission_classes = [IsAuthenticated]
-    # pagination_class = WahuminiPagination
+    pagination_class = WahuminiPagination
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = [
+        'first_name',
+        'last_name',
+        'phone_number',
+        'email',
+        'jumuiya__name',
+        'jumuiya__kanda__name',
+    ]
+    ordering_fields = ['created_at', 'updated_at', 'first_name', 'last_name']
+    ordering = ['-created_at']
 
     def get_queryset(self):
         church_id = self.request.query_params.get('church_id')
@@ -408,7 +419,7 @@ class WahuminiRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
 
 
 class CardsNumberNumberPagination(PageNumberPagination):
-    page_size = 600  # Adjust based on performance needs
+    page_size = 600
     page_size_query_param = 'page_size'
     max_page_size = 500
 
@@ -416,12 +427,12 @@ class CardsNumberListCreateView(ListCreateAPIView):
     queryset = CardsNumber.objects.all()
     serializer_class = CardsNumberSerializer
     permission_classes = [IsAuthenticated]
-    # pagination_class = CardsNumberNumberPagination
-    filter_backends = [
-        DjangoFilterBackend,
-        filters.SearchFilter
-    ]
-    filterset_fields = ['bahasha_type', 'card_status']
+    pagination_class = CardsNumberNumberPagination
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['mhumini__first_name', 'mhumini__last_name',
+                     'card_no', 'mhumini__jumuiya__name', 'mhumini__jumuiya__kanda__name']
+    ordering_fields = ['created_at']
+    ordering = ['-created_at']
 
     def get_queryset(self):
         church_id = self.request.query_params.get('church_id')
