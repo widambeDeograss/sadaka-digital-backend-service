@@ -753,16 +753,26 @@ class ZakaListCreateView(ListCreateAPIView):
                 # Create a PDF file
                 response = HttpResponse(content_type='application/pdf')
                 response['Content-Disposition'] = 'attachment; filename=zaka_export.pdf'
-                
-                # Create the PDF object using ReportLab
+
                 buffer = BytesIO()
-                doc = SimpleDocTemplate(buffer, pagesize=landscape(letter))
+                doc = SimpleDocTemplate(
+                    buffer,
+                    pagesize=landscape(letter),
+                    leftMargin=20,
+                    rightMargin=20,
+                    topMargin=20,
+                    bottomMargin=20
+                )
                 elements = []
                 
                 # Add title
                 styles = getSampleStyleSheet()
                 elements.append(Paragraph("Zaka Records Report", styles['Title']))
                 elements.append(Spacer(1, 12))
+                max_col_count = len(df.columns)
+                page_width = landscape(letter)[0] - doc.leftMargin - doc.rightMargin
+                col_width = page_width / max_col_count
+                col_widths = [col_width] * max_col_count
                 
                 # Create table data
                 table_data = [df.columns.tolist()]  # Header row
@@ -770,7 +780,7 @@ class ZakaListCreateView(ListCreateAPIView):
                     table_data.append(row.tolist())
                 
                 # Create the table
-                table = Table(table_data)
+                table = Table(table_data, colWidths=col_widths)
                 table.setStyle(TableStyle([
                     ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
                     ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),

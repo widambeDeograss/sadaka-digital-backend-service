@@ -187,15 +187,13 @@ class ZakaExportSerializer(serializers.ModelSerializer):
     class Meta:
         model = Zaka
         fields = [
-            'id',
             'zaka_amount',
             'date',
             'bahasha_card_number',
             'muumini',
             'payment_type_name',
             'jumuiya_details',
-            'inserted_at',
-            'inserted_by',
+            'inserted_at'
         ]
 
     def get_bahasha_card_number(self, obj):
