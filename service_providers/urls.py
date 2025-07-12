@@ -18,7 +18,6 @@ from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
 router.register(r'revenue-reports', MonthlyReportViewSet, basename='revenue-reports')
-# router.register(r'wahumini-statement', MuhuminiContributionsView, basename='statement')
 
 app_name = 'service_providers'
 
