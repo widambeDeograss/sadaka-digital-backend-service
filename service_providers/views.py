@@ -633,25 +633,50 @@ class ZakaListCreateView(ListCreateAPIView):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        zaka = serializer.save()
-        if zaka.bahasha:
-            # Retrieve the mhumini's details for the SMS
-            mhumini = zaka.bahasha.mhumini
-            amount_paid = zaka.zaka_amount
-            month = zaka.date.strftime("%B")  # Get the month name
-            year = zaka.date.year
+        validated_data = serializer.validated_data
 
-            # Compose the SMS message in Swahili
-            message = (f"Kristu,\nMpendwa {mhumini.first_name} {mhumini.last_name}, tumepokea zaka yako ya Tsh {amount_paid} kwa mwezi {month} {year}."
-                       f"Mungu akubariki.\nMawasiliano: 0677050573"
-                       f"\nPAROKIA YA BMC MAKABE.")
-            print(message)
-            # Send the SMS using your existing SMS method
-            pushMessage(message, mhumini.phone_number)
-        else:
-            pass
+        # Pre-check 1: Monthly entry validation
+        bahasha = validated_data.get('bahasha')
+        date = validated_data.get('date')
+        if bahasha and date:
+            month = date.month
+            year = date.year
+            # Check for existing entry in same month/year
+            if Zaka.objects.filter(
+                    bahasha=bahasha,
+                    date__month=month,
+                    date__year=year
+            ).exists():
+                return Response(
+                    {"detail": "Zaka entry for this bahasha already exists in this month."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        # Create record if validation passes
+        zaka = serializer.save()
+        response_data = serializer.data
         headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+        # Pre-check 2: Phone number notification
+        if zaka.bahasha:
+            mhumini = zaka.bahasha.mhumini
+            if not mhumini.phone_number:
+                # Add warning to response
+                response_data = dict(response_data)
+                response_data['warning'] = "Zaka recorded successfully, but SMS not sent: Mhumini missing phone number."
+            else:
+                # Send SMS if phone exists
+                amount_paid = zaka.zaka_amount
+                month = zaka.date.strftime("%B")
+                year = zaka.date.year
+                message = (
+                    f"Kristu,\nMpendwa {mhumini.first_name} {mhumini.last_name}, "
+                    f"tumepokea zaka yako ya Tsh {amount_paid} kwa mwezi {month} {year}. "
+                    f"Mungu akubariki.\nMawasiliano: 0677050573\nPAROKIA YA BMC MAKABE."
+                )
+                pushMessage(message, mhumini.phone_number)
+
+        return Response(response_data, status=status.HTTP_201_CREATED, headers=headers)
 
     def get_queryset(self):
         queryset = Zaka.objects.all()
@@ -920,7 +945,7 @@ class MchangoListCreateView(ListCreateAPIView):
         if church_id:
             return Mchango.objects.filter(church=church_id)
         return Mchango.objects.all()
-    
+
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()

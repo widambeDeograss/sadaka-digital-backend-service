@@ -1,0 +1,25 @@
+SELECT * FROM public.service_providers_zaka
+ORDER BY id ASC
+
+SELECT
+    z.id,
+    z.date as zakamonth,
+	z.zaka_amount,
+	z.collected_by as description,
+    z.date_received,
+    z.inserted_by,
+    z.inserted_at,
+    z.updated_by,
+    z.updated_at,
+    z.bahasha_id,
+    b.card_no,              -- Assuming column name in bahasha table
+    z.payment_type_id,
+    pt.name AS payment_type_name   -- Assuming column name in paymenttype table
+FROM
+    service_providers_zaka z
+LEFT JOIN
+    service_providers_cardsnumber b ON z.bahasha_id = b.id
+LEFT JOIN
+    service_providers_paymenttype pt ON z.payment_type_id = pt.id
+ORDER BY
+    z.id ASC;
