@@ -449,8 +449,13 @@ class AhadiPayments(models.Model):
 
 
 class Mavuno(models.Model):
+    mavuno_type_options = (
+    ("MAVUNO_JIMBO", "MAVUNO_JIMBO"),
+    ("MAVUNO_PAROKIA", "MAVUNO_PAROKIA")
+    )
     jumuiya = models.ForeignKey(Jumuiya, on_delete=models.CASCADE, null=True, blank=True, db_index=True)
     name = models.CharField(max_length=300)
+    mavuno_type = models.CharField(max_length=100, choices=mavuno_type_options, default="MAVUNO_PAROKIA")
     description = models.TextField()
     church = models.ForeignKey(ServiceProvider, on_delete=models.CASCADE, db_index=True)
     year_target_amount = models.DecimalField(max_digits=20, decimal_places=2)

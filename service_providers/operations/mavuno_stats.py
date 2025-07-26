@@ -24,13 +24,14 @@ class MavunoStatsAndChartView(APIView):
         query_type = request.query_params.get("type", "totals")  
         church_id = request.query_params.get("church_id")
         mavuno_id = request.query_params.get("mavuno_id")
+        mavuno_type =  request.query_params.get("mavuno_type")
 
-        if not church_id:
-            return Response({"error": "Church ID is required."}, status=400)
+        if not church_id and not mavuno_type:
+            return Response({"error": "Church ID or mavuno type is required."}, status=400)
 
         # Handle totals
         if query_type == "totals":
-            return self.get_totals(church_id)
+            return self.get_totals(church_id, mavuno_type)
 
         # Handle chart data
         if query_type == "chart":
@@ -41,7 +42,7 @@ class MavunoStatsAndChartView(APIView):
         # Invalid query type
         return Response({"error": "Invalid type. Use 'totals' or 'chart'."}, status=400)
 
-    def get_totals(self, church_id):
+    def get_totals(self, church_id, mavuno_type):
         """
         Calculate totals for Mavuno payments.
         """
@@ -52,6 +53,7 @@ class MavunoStatsAndChartView(APIView):
         # Total payments this month
         total_payments_this_month = MavunoPayments.objects.filter(
             mavuno__church_id=church_id,
+            mavuno__mavuno_type=mavuno_type,
             inserted_at__year=year,
             inserted_at__month=month
         ).aggregate(total_amount=Sum('amount'))['total_amount'] or 0
@@ -59,12 +61,13 @@ class MavunoStatsAndChartView(APIView):
         # Total payments this year
         total_payments_this_year = MavunoPayments.objects.filter(
             mavuno__church_id=church_id,
+            mavuno__mavuno_type=mavuno_type,
             inserted_at__year=year
         ).aggregate(total_amount=Sum('amount'))['total_amount'] or 0
 
         # Top-performing Jumuiya
         top_performing_jumuiya = (
-            MavunoPayments.objects.filter(mavuno__church_id=church_id)
+            MavunoPayments.objects.filter(mavuno__church_id=church_id, mavuno__mavuno_type=mavuno_type,)
             .values(jumuiya_name=F('mavuno__jumuiya__name'))
             .annotate(total_collected=Sum('amount'))
             .order_by('-total_collected')

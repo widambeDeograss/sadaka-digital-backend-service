@@ -1212,8 +1212,9 @@ class MavunoListCreateView(ListCreateAPIView):
 
     def get_queryset(self):
         church_id = self.request.query_params.get('church_id')
-        if church_id:
-            return Mavuno.objects.filter(church=church_id)
+        mavuno_type = self.request.query_params.get('mavuno_type')
+        if church_id and mavuno_type:
+            return Mavuno.objects.filter(church=church_id, mavuno_type=mavuno_type)
         return Mavuno.objects.all()
     
     @method_decorator(cache_page(60 * 5))
