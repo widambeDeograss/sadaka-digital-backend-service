@@ -42,7 +42,7 @@ class RevenueByPaymentTypeView(APIView):
         )
 
         # Aggregate revenues by payment type
-        revenue_summary = revenues.values('payment_type__name').annotate(
+        revenue_summary = revenues.values('payment_type__name', "payment_type__id").annotate(
             total_amount=Sum('amount')
         ).order_by('payment_type__name')
 

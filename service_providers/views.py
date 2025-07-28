@@ -271,6 +271,28 @@ class KandaViewListCreate(ListCreateAPIView):
 
     @method_decorator(cache_page(60 * 5))  # Cache for 5 minutes
     def list(self, request, *args, **kwargs):
+        export = request.query_params.get('export', None)
+
+        if export == 'excel':
+            # Fetch all data (bypass pagination)
+            queryset = self.get_queryset()
+            serializer = self.get_serializer(queryset, many=True)
+            data = serializer.data
+
+            # Convert the data to a DataFrame
+            df = pd.DataFrame(data)
+
+            # Create an Excel file in memory
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False, sheet_name='Sheet1')
+
+            # Prepare the response
+            output.seek(0)
+            response = HttpResponse(output.read(),
+                                    content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            response['Content-Disposition'] = 'attachment; filename=exported_data.xlsx'
+            return response
         return super().list(request, *args, **kwargs)
 
 
@@ -840,9 +862,46 @@ class ZakaRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
 
 
 class PaymentTypeTransferListCreateView(ListCreateAPIView):
-    queryset = PaymentTypeTransfer.objects.all()
     serializer_class = PaymentTypeTransferSerializer
     permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['from_payment_type', 'to_payment_type']
+
+    def get_queryset(self):
+        queryset = PaymentTypeTransfer.objects.all()
+
+        # Get query parameters
+        from_payment_type = self.request.query_params.get('from_payment_type')
+        to_payment_type = self.request.query_params.get('to_payment_type')
+        start_date = self.request.query_params.get('start_date')
+        end_date = self.request.query_params.get('end_date')
+        church_id = self.request.query_params.get('church')
+
+        # Filter by church (service provider)
+        if church_id:
+            queryset = queryset.filter(church_id=church_id)
+
+        # Filter by from_payment_type if provided
+        if from_payment_type:
+            queryset = queryset.filter(from_payment_type_id=from_payment_type)
+
+        # Filter by to_payment_type if provided
+        if to_payment_type:
+            queryset = queryset.filter(to_payment_type_id=to_payment_type)
+
+        # Date range filtering
+        if start_date and end_date:
+            try:
+                start_date = datetime.strptime(start_date, '%Y-%m-%d')
+                end_date = datetime.strptime(end_date, '%Y-%m-%d')
+                queryset = queryset.filter(
+                    transfer_date__gte=start_date,
+                    transfer_date__lte=end_date
+                )
+            except ValueError:
+                pass  # Handle invalid date format if needed
+
+        return queryset.select_related('from_payment_type', 'to_payment_type', 'church')
 
 
 class PaymentTypeTransferRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
