@@ -168,6 +168,7 @@ class Wahumini(models.Model):
     address = models.TextField(null=True, blank=True)
     marital_status = models.CharField(max_length=25)
     has_loin_account = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
     created_by = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_by = models.CharField(max_length=255)

@@ -1357,20 +1357,22 @@ class MavunoPaymentListCreateView(ListCreateAPIView):
         try:
             mavuno = Mavuno.objects.select_for_update().get(id=mavuno_payment.mavuno_id)
 
+            print(mavuno)
+
         except Mavuno.DoesNotExist:
             raise serializers.ValidationError("Mavuno does not exist.")
 
         mavuno.collected_amount += mavuno_payment.amount
-        print(mavuno.jumuiya.namba_ya_simu)
+        print(mavuno.jumuiya)
         pushMessage(
             f"Tumsifu Yesu Kristu,\n Mavuno ya Mpendwa {mavuno_payment.mhumini.first_name + ' ' + mavuno_payment.mhumini.last_name} kiasi cha Tsh {mavuno_payment.amount} \n"
-            f"Yamepokelewa kwa {mavuno_payment.payment_type.name}, Jumuiya {mavuno.jumuiya.name}. Jumla ya mavuno {mavuno.collected_amount} \n Mungu akubariki.",
+            f"Yamepokelewa kwa {mavuno_payment.payment_type.name}, Jumuiya {mavuno.jumuiya.name}. Jumla ya mavuno {mavuno.collected_amount} \n Mungu awabariki. Mawasiliano: 0677050573 PAROKIA YA BMC MAKABE.",
 
             mavuno.jumuiya.address
         )
         pushMessage(
             f"Tumsifu Yesu Kristu,\n Mavuno ya Mpendwa {mavuno_payment.mhumini.first_name + ' ' + mavuno_payment.mhumini.last_name} kiasi cha Tsh {mavuno_payment.amount} \n"
-                    f"Yamepokelewa kwa {mavuno_payment.payment_type.name}, Jumuiya {mavuno.jumuiya.name}. Jumla ya mavuno {mavuno.collected_amount}. \nMungu akubariki.",
+                    f"Yamepokelewa kwa {mavuno_payment.payment_type.name}, Jumuiya {mavuno.jumuiya.name}. Jumla ya mavuno {mavuno.collected_amount}. \nMungu awabariki. Mawasiliano: 0677050573 PAROKIA YA BMC MAKABE.",
                     mavuno.jumuiya.namba_ya_simu,
         )
 

@@ -10,30 +10,52 @@ from ..models import Revenue, PaymentType
 
 class RevenueByPaymentTypeView(APIView):
     permission_classes = [IsAuthenticated]
+
     def get(self, request, church_id):
-        # Get the period from the request parameters, default to 'daily'
+        # church_id = request.query_params.get('church_id')
         period = request.query_params.get('period', 'daily').lower()
+        start_date_param = request.query_params.get('start_date')
+        end_date_param = request.query_params.get('end_date')
 
-        # Get the current date and time
-        now = timezone.now()
+        # Validate church_id is provided
+        if not church_id:
+            return Response(
+                {'error': 'church_id parameter is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        # Define the start and end dates based on the period
-        if period == 'daily':
-            start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
-            end_date = start_date + timedelta(days=1)
-        elif period == 'weekly':
-            start_date = now - timedelta(days=now.weekday())
-            start_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
-            end_date = start_date + timedelta(weeks=1)
-        elif period == 'monthly':
-            start_date = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            end_date = (start_date + timedelta(days=32)).replace(day=1)
-        elif period == 'yearly':
-            start_date = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-            end_date = start_date.replace(year=start_date.year + 1)
+        # If custom dates are provided, use them instead of period-based calculation
+        if start_date_param and end_date_param:
+            try:
+                start_date = timezone.datetime.strptime(start_date_param, '%Y-%m-%d')
+                end_date = timezone.datetime.strptime(end_date_param, '%Y-%m-%d')
+            except ValueError:
+                return Response(
+                    {'error': 'Invalid date format. Use YYYY-MM-DD'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
         else:
-            return Response({'error': 'Invalid period specified'}, status=status.HTTP_400_BAD_REQUEST)
+            # Calculate dates based on period if no custom dates provided
+            now = timezone.now()
 
+            if period == 'daily':
+                start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+                end_date = start_date + timedelta(days=1)
+            elif period == 'weekly':
+                start_date = now - timedelta(days=now.weekday())
+                start_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+                end_date = start_date + timedelta(weeks=1)
+            elif period == 'monthly':
+                start_date = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+                end_date = (start_date + timedelta(days=32)).replace(day=1)
+            elif period == 'yearly':
+                start_date = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+                end_date = start_date.replace(year=start_date.year + 1)
+            else:
+                return Response(
+                    {'error': 'Invalid period specified. Use daily, weekly, monthly, or yearly'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
         # Filter revenues by church and date range
         revenues = Revenue.objects.filter(
             church_id=church_id,

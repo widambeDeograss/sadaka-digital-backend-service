@@ -184,7 +184,7 @@ class CheckZakaPresenceView(APIView):
                             status=status.HTTP_400_BAD_REQUEST)
 
     def get_zaka_card_details_for_month_year(self, month, year, church_id):
-        zaka_cards = CardsNumber.objects.filter(bahasha_type='zaka', church=church_id).select_related('mhumini')
+        zaka_cards = CardsNumber.objects.filter(bahasha_type='zaka', church=church_id, mhumini__is_active=True).select_related('mhumini')
         start_date = datetime(year, month, 1)
         end_date = datetime(year, month + 1, 1) if month < 12 else datetime(year + 1, 1, 1)
 
@@ -209,7 +209,7 @@ class CheckZakaPresenceView(APIView):
         return card_details
 
     def get_zaka_card_details_for_range(self, start_month, start_year, end_month, end_year, church_id):
-        zaka_cards = CardsNumber.objects.filter(bahasha_type='zaka', mhumini__church=church_id).select_related(
+        zaka_cards = CardsNumber.objects.filter(bahasha_type='zaka', mhumini__church=church_id, mhumini__is_active=True).select_related(
             'mhumini')
         month = int(start_month)
         year = int(start_year)
@@ -253,7 +253,7 @@ class CheckZakaPresenceView(APIView):
         return card_details
 
     def send_unpaid_zaka_reminders(self, month, year, church_id):
-        zaka_cards = CardsNumber.objects.filter(bahasha_type='zaka', church=church_id).select_related('mhumini')
+        zaka_cards = CardsNumber.objects.filter(bahasha_type='zaka', church=church_id, mhumini__is_active=True).select_related('mhumini')
         start_date = datetime(year, month, 1)
         end_date = datetime(year, month + 1, 1) if month < 12 else datetime(year + 1, 1, 1)
         month_names = {
@@ -285,7 +285,7 @@ class CheckZakaPresenceView(APIView):
 
 
     def send_unpaid_zaka_reminders_for_range(self, start_month, start_year, end_month, end_year, church_id):
-        zaka_cards = CardsNumber.objects.filter(bahasha_type='zaka', church=church_id).select_related('mhumini')
+        zaka_cards = CardsNumber.objects.filter(bahasha_type='zaka', church=church_id, mhumini__is_active=True).select_related('mhumini')
         month_names = {
             1: "January", 2: "February", 3: "March", 4: "April",
             5: "May", 6: "June", 7: "July", 8: "August",
