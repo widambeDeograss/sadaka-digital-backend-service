@@ -22,7 +22,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
-from .sms_queue_service import SMSQueueService, SmsQueueService
+from .sms_queue_service import SMSQueueService
 import logging
 
 logger = logging.getLogger(__name__)
@@ -879,6 +879,50 @@ class ZakaRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     queryset = Zaka.objects.all()
     serializer_class = ZakaSerializer
     permission_classes = [IsAuthenticated]
+    sms_service = SMSQueueService()
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+
+        # Store the old amount before update
+        old_amount = instance.zaka_amount
+        old_date = instance.date
+
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        validated_data = serializer.validated_data
+
+        logger.info(f"Updating Zaka entry {instance.id} with data: {validated_data}")
+
+        self.perform_update(serializer)
+        updated_instance = serializer.instance
+
+        # Only send SMS if the amount has changed
+        if updated_instance.zaka_amount != old_amount or updated_instance.date != old_date:
+            if updated_instance.bahasha:
+                mhumini = updated_instance.bahasha.mhumini
+                if not mhumini.phone_number:
+                    logger.warning(
+                        f"Zaka updated successfully, but SMS not sent: Mhumini missing phone number."
+                    )
+                else:
+                    amount_paid = updated_instance.zaka_amount
+                    month = updated_instance.date.strftime("%B")
+                    year = updated_instance.date.year
+                    message = (
+                        f"Kristu,\nMpendwa {mhumini.first_name} {mhumini.last_name}, "
+                        f"zaka yako kwa mwezi {month} {year} imebadilishwa kuwa Tsh {amount_paid}. "
+                        f"Mungu akubariki.\nMawasiliano: 0677050573\nPAROKIA YA BMC MAKABE."
+                    )
+                    self.sms_service.add_to_queue(
+                        message,
+                        mhumini.phone_number,
+                        f"{mhumini.first_name} {mhumini.last_name}"
+                    )
+                    logger.info(f"Correction SMS queued for {mhumini.phone_number}")
+
+        return Response(serializer.data)
 
 
 class PaymentTypeTransferListCreateView(ListCreateAPIView):

@@ -16,11 +16,17 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
+import logging
+
+
+logger = logging.getLogger(__name__)
+
 
 class RegisterUser(ListCreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [AllowAny]
+
 
 # class RegisterUser(APIView):
 #     permission_classes = [AllowAny]
@@ -67,8 +73,10 @@ class LoginView(APIView):
     def post(self, request):
         email = request.data.get("email")
         password = request.data.get("password")
+        logger.info(f"Login attempt for email: {email}")
 
         if not email or not password:
+            logger.warning("Login failed: Email and password are required.")
             return Response({
                 "success": False,
                 "message": "Email and password are required."
@@ -76,10 +84,11 @@ class LoginView(APIView):
 
 
         user = authenticate(request, email=email, password=password, backend=EmailBackend)
-        print("==============================")
+        logger.info(f"User authenticated: {user}")
 
         if user is not None:
             if not user.user_active:
+                logger.warning(f"Login failed: Inactive account for email: {email}")
                 return Response({
                     "success": False,
                     "message": "Your account is inactive. Please contact support."
@@ -92,6 +101,7 @@ class LoginView(APIView):
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
             refresh_token = str(refresh)
+            logger.info(f"Login successful for email: {email}")
 
             response = {
                 "success": True,
@@ -99,6 +109,7 @@ class LoginView(APIView):
                 "refresh_token": refresh_token,
                 "user": user_info,
             }
+
             return Response(response, status=200)
         else:
             return Response({
@@ -118,6 +129,7 @@ class GetUsersView(APIView):
     def get(request):
         query_type = request.GET.get("query_type")
         queryset = User.objects.all()
+        logger.info(f"Query type: {query_type}")
         if query_type == "sp_admins":
             # institute_id = request.GET.get('institute_id')
             queryset = queryset.filter(is_sp_admin=True)
@@ -130,7 +142,7 @@ class GetUsersView(APIView):
         if query_type == "inactive_staff":
             queryset = queryset.filter(user_active=False, user_deleted=False)
             return Response(UserGetSerializer(instance=queryset, many=True))
-        
+        logger.info("No specific query type provided, returning all users.")
         return Response([])
 
 
@@ -142,6 +154,7 @@ class ChangePasswordView(APIView):
         serializer = ChangePasswordSerializer(data=request.data)
         if serializer.is_valid():
             user = request.user
+            logger.info(f"Password change attempt for user: {user.email}")
             if user.check_password(serializer.data.get("old_password")):
                 user.set_password(serializer.data.get("new_password"))
                 user.save()
@@ -151,6 +164,7 @@ class ChangePasswordView(APIView):
                 return Response(
                     {"message": "Password changed successfully.", "success": True}
                 )
+            logger.warning(f"Password change failed for user: {user.email} - Incorrect old password.")
             return Response(
                 {"error": "Incorrect old password.", "success": False}
             )
@@ -168,11 +182,13 @@ class ActivateDeactivateStaff(APIView):
     @staticmethod
     def get(request):
         data = request.data
+        logger.info(f"Activate/Deactivate staff attempt: {data}")
         try:
             id = request.GET.get('id')
             user = User.objects.get(id=id)
             user.user_active = not user.user_active
             user.save()
+            logger.info(f"Staff {'activated' if user.user_active else 'deactivated'} successfully: {user.email}")
             return Response(
                 {
                     "success": True,
@@ -181,6 +197,7 @@ class ActivateDeactivateStaff(APIView):
                 status=status.HTTP_200_OK
             )
         except User.DoesNotExist:
+            logger.warning(f"Activate/Deactivate staff failed: User not found.")
             return Response(
                 {
                     "success": False,
@@ -194,13 +211,17 @@ class DeleteStaffView(APIView):
     @staticmethod
     def get(request):
         data = request.data
+        logger.info(f"Delete staff attempt: {data}")
         try:
+
             id = request.GET.get('id')
             user = User.objects.get(id=id)
             user.user_deleted = True
             user.save()
+            logger.info(f"Staff deleted successfully: {user.email}")
             return Response({"success": True, "message": "Staff deleted successfully."})
         except User.DoesNotExist:
+            logger.warning(f"Delete staff failed: User not found.")
             return Response({"success": False, "message": "User not found."})
 
 

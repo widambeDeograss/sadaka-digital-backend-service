@@ -6,6 +6,8 @@ from .operations.mavuno_stats import MavunoStatsAndChartView
 from .operations.mchango_stats import MchangoStats, MchangoStatsView
 from .operations.sadaka_zaka_stats import SadakaZakaStats, CheckZakaPresenceView
 from .operations.send_dedicated_message import SendDedicatedMessage
+from .operations.sms_traking import AddToQueueView, QueueStatusView, SMSTrackingView, SMSStatsView, SMSDetailView, \
+    ResendFailedSMSView
 from .operations.wahumini_stats import WahuminiStatsView
 from .reports.expences import ExpenseReportView
 from .reports.payment_type_revenue import RevenueByPaymentTypeView
@@ -92,5 +94,13 @@ urlpatterns = [
     path('reports/expenses-statement', ExpenseReportView.as_view(), ),
     path('sms/send-custom', SendDedicatedMessage.as_view(), ),
     path('reports/', include(router.urls)),
-    path('revenue/<int:church_id>/', RevenueByPaymentTypeView.as_view(), name='revenue_by_payment_type')
+    path('revenue/<int:church_id>/', RevenueByPaymentTypeView.as_view(), name='revenue_by_payment_type'),
+    path('sms/add/', AddToQueueView.as_view(), name='add_to_queue'),
+    path('sms/status/', QueueStatusView.as_view(), name='queue_status'),  # Legacy
+
+    # SMS tracking and filtering
+    path('sms/track/', SMSTrackingView.as_view(), name='sms_tracking'),
+    path('sms/stats/', SMSStatsView.as_view(), name='sms_stats'),
+    path('sms/detail/<int:sms_id>/', SMSDetailView.as_view(), name='sms_detail'),
+    path('sms/resend-failed/', ResendFailedSMSView.as_view(), name='resend_failed_sms'),
 ]
