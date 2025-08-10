@@ -3,10 +3,14 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from service_providers.models import Wahumini
-from service_providers.operations.message import pushMessage
+from ..sms_queue_service import SMSQueueService
+import logging
+
+logger = logging.getLogger(__name__)
 
 class SendDedicatedMessage(APIView):
     permission_classes = []
+    sms_service = SMSQueueService()
     def post(self, request):
         """
         Handles POST requests to send a dedicated message.
@@ -36,7 +40,9 @@ class SendDedicatedMessage(APIView):
 
                     for muumini in waumini:
                         # Attempt to send the message
-                        result = pushMessage(message, muumini.phone_number)
+                        result = self.sms_service.add_to_queue(message, muumini.phone_number, muumini.first_name + " " + muumini.last_name)
+                        logger.info(f"SMS notification queued for Waumini: {muumini.id}")
+
 
                     # Return success response with the result
                     return Response(

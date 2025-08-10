@@ -492,3 +492,49 @@ class MavunoPayments(models.Model):
             models.Index(fields=['mavuno', 'payment_type'])
         ]
         ordering = ['-inserted_at']
+
+
+
+class SMSQueue(models.Model):
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('WAITING', 'Waiting'),
+        ('SUBMITTED', 'Submitted'),
+        ('FAILED', 'Failed'),
+    ]
+
+    message = models.TextField()
+    phone = models.CharField(max_length=20)
+    recipient_name = models.CharField(max_length=100, blank=True, null=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    sent_at = models.DateTimeField(blank=True, null=True)
+    request_id = models.CharField(max_length=50, blank=True, null=True)
+    error_message = models.TextField(blank=True, null=True)
+    success_message = models.TextField(blank=True, null=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"SMS to {self.phone} - {self.status}"
+
+    def format_phone(self):
+        """Format phone number to ensure it starts with country code"""
+        phone = str(self.phone).strip()
+
+        # Remove any non-digit characters except +
+        phone = ''.join(c for c in phone if c.isdigit() or c == '+')
+
+        # Handle different formats
+        if phone.startswith('+255'):
+            return phone[1:]  # Remove +
+        elif phone.startswith('0'):
+            return '255' + phone[1:]  # Replace leading 0 with 255
+        elif phone.startswith('255'):
+            return phone
+        elif len(phone) == 9:  # Assume it's missing country code
+            return '255' + phone
+
+        return phone

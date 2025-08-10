@@ -13,7 +13,6 @@ from rest_framework.permissions import IsAuthenticated,    IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .models import *
-from .operations.message import pushMessage
 from .serializer import *
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
@@ -23,6 +22,10 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
+from .sms_queue_service import SMSQueueService, SmsQueueService
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class LargeResultsSetPagination(PageNumberPagination):
@@ -194,6 +197,8 @@ class CreateSpManager(APIView):
             "role": request.data.get("role"),
         }
 
+        logging.info(f"Creating SP Manager with data: {manager_data}")
+
         manager_data = {
             "church": request.data.get("church"),
             "inserted_by": request.data.get("inserted_by"),
@@ -221,6 +226,8 @@ class CreateSpManager(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             manager_serializer.save()
+
+            logging.info(f"SP Manager created successfully: {manager_serializer.data}") 
             return Response(
                 {
                     "message": "User and Marketing Team Member created successfully",
@@ -231,6 +238,7 @@ class CreateSpManager(APIView):
             )
         except Exception as e:
             transaction.set_rollback(True)
+            logging.error(f"Error creating SP Manager: {str(e)}")
             return Response(
                 {"message": "An error occurred", "error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -309,6 +317,7 @@ class JumuiyaViewListCreate(ListCreateAPIView):
 
     def get_queryset(self):
         church_id = self.request.query_params.get('church_id')
+        logger.info(f"Fetching Jumuiya for church_id: {church_id}")
         if church_id:
             return Jumuiya.objects.filter(church=church_id)
         return Jumuiya.objects.all()
@@ -502,6 +511,7 @@ class CardsNumberRetrieveUpdateDestroyView(RetrieveUpdateDestroyAPIView):
         """
         card_no = self.kwargs.get("card_no")
         church_id = self.request.query_params.get("church_id")
+        logger.info(f"Fetching CardsNumber for card_no: {card_no}, church_id: {church_id}")
 
         if not card_no:
             raise ValueError("Card number must be provided.")
@@ -572,6 +582,8 @@ class SadakaListCreateView(ListCreateAPIView):
         filter_type = self.request.query_params.get('filter')
         year = self.request.query_params.get('year', timezone.now().year)
         queryset = Sadaka.objects.all()
+
+        logger.info(f"Fetching Sadaka for church_id: {church_id}, filter_type: {filter_type}, year: {year}")
 
         if church_id:
             queryset = queryset.filter(church_id=church_id)
@@ -651,11 +663,14 @@ class ZakaListCreateView(ListCreateAPIView):
                      'bahasha__card_no', 'bahasha__mhumini__jumuiya__name']
     ordering_fields = ['date', 'zaka_amount', 'inserted_at']
     ordering = ['-inserted_at']
+    sms_service = SMSQueueService()
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         validated_data = serializer.validated_data
+
+        logger.info(f"Creating Zaka entry with data: {validated_data}")
 
         # Pre-check 1: Monthly entry validation
         bahasha = validated_data.get('bahasha')
@@ -669,6 +684,7 @@ class ZakaListCreateView(ListCreateAPIView):
                     date__month=month,
                     date__year=year
             ).exists():
+                logger.warning(f"Zaka entry for bahasha {bahasha} already exists in {month}/{year}.")
                 return Response(
                     {"detail": "Zaka entry for this bahasha already exists in this month."},
                     status=status.HTTP_400_BAD_REQUEST
@@ -677,12 +693,14 @@ class ZakaListCreateView(ListCreateAPIView):
         # Create record if validation passes
         zaka = serializer.save()
         response_data = serializer.data
+        logger.info(f"Zaka entry created successfully: {response_data}")
         headers = self.get_success_headers(serializer.data)
 
         # Pre-check 2: Phone number notification
         if zaka.bahasha:
             mhumini = zaka.bahasha.mhumini
             if not mhumini.phone_number:
+                logger.warning(f"Zaka recorded successfully, but SMS not sent: Mhumini missing phone number.")
                 # Add warning to response
                 response_data = dict(response_data)
                 response_data['warning'] = "Zaka recorded successfully, but SMS not sent: Mhumini missing phone number."
@@ -696,7 +714,7 @@ class ZakaListCreateView(ListCreateAPIView):
                     f"tumepokea zaka yako ya Tsh {amount_paid} kwa mwezi {month} {year}. "
                     f"Mungu akubariki.\nMawasiliano: 0677050573\nPAROKIA YA BMC MAKABE."
                 )
-                pushMessage(message, mhumini.phone_number)
+                self.sms_service.add_to_queue(message, mhumini.phone_number, mhumini.first_name + " " + mhumini.last_name)
 
         return Response(response_data, status=status.HTTP_201_CREATED, headers=headers)
 
@@ -715,6 +733,8 @@ class ZakaListCreateView(ListCreateAPIView):
         year = self.request.query_params.get('year', timezone.now().year)
         from_date = self.request.query_params.get('from_date')
         to_date = self.request.query_params.get('to_date')
+
+        logger.info(f"Fetching Zaka for church_id: {church_id}, filter_type: {filter_type}, year: {year}, from_date: {from_date}, to_date: {to_date}")
         
         # Filter by year if no specific date range is provided
         if not (from_date or to_date):
@@ -877,6 +897,8 @@ class PaymentTypeTransferListCreateView(ListCreateAPIView):
         end_date = self.request.query_params.get('end_date')
         church_id = self.request.query_params.get('church')
 
+        logger.info(f"Fetching PaymentTypeTransfer with filters: from_payment_type={from_payment_type}, to_payment_type={to_payment_type}, start_date={start_date}, end_date={end_date}, church_id={church_id}")
+
         # Filter by church (service provider)
         if church_id:
             queryset = queryset.filter(church_id=church_id)
@@ -922,6 +944,8 @@ class RevenueUpdateView(APIView):
     def put(self, request, *args, **kwargs):
         revenue_type_record = request.data.get("revenue_type_record")
         revenue_type = request.data.get("revenue_type")
+
+        logger.info(f"Updating Revenue for revenue_type_record: {revenue_type_record}, revenue_type: {revenue_type}")
 
         try:
             # Find the Revenue object by `revenue_type_record` and `revenue_type`
@@ -1076,13 +1100,16 @@ class MchangoPaymentListCreateView(ListCreateAPIView):
         # Save the MchangoPayment instance
         mchango_payment = serializer.save()
 
+        logger.info(f"Created MchangoPayment: {mchango_payment.id}")
+
         try:
             # Lock the Mchango instance to prevent race conditions
             mchango = Mchango.objects.select_for_update().get(id=mchango_payment.mchango_id)
+            logger.info(f"Locked Mchango instance: {mchango.id}")
         except Mchango.DoesNotExist:
             # If the Mchango does not exist, rollback the transaction
             raise serializers.ValidationError("Mchango does not exist.")
-
+        logger.info(f"Updating Mchango instance: {mchango.id}")
         # Update the collected_amount
         mchango.collected_amount += mchango_payment.amount
         mchango.save()
@@ -1202,6 +1229,7 @@ class AhadiPaymentListCreateView(ListCreateAPIView):
 
         # Save the Ahadi payment instance
         ahadi_payment = serializer.save()
+        logger.info(f"Created AhadiPayment: {ahadi_payment.id}")
 
 
         try:
@@ -1212,7 +1240,7 @@ class AhadiPaymentListCreateView(ListCreateAPIView):
         except Ahadi.DoesNotExist:
             # If the Mchango does not exist, rollback the transaction
             raise serializers.ValidationError("Ahadi does not exist.")
-
+        logger.info(f"Updating Ahadi instance: {ahadi.id}")
         # Update the collected_amount
         ahadi.paid_amount += ahadi_payment.amount
         ahadi.save()
@@ -1226,6 +1254,7 @@ class AhadiPaymentListCreateView(ListCreateAPIView):
                 inserted_by=ahadi_payment.inserted_by,
                 updated_by=ahadi_payment.updated_by,
             )
+          logger.info(f"Created MchangoPayment based on AHADI: {mchango_payment.id}")
           mchango =  Mchango.objects.get(id=ahadi.mchango.id)
           mchango.collected_amount += ahadi_payment.amount
           mchango.save()
@@ -1239,8 +1268,10 @@ class AhadiPaymentListCreateView(ListCreateAPIView):
               created_by=ahadi_payment.inserted_by,
               updated_by=ahadi_payment.updated_by,
           )
+          logger.info(f"Updated Mchango instance: {mchango.id}")
         else:
             # If no Mchango, create a Sadaka record
+           logger.info(f"Creating Sadaka for church: {ahadi.church.id}, amount: {ahadi_payment.amount}")
            sadaka = Sadaka.objects.create(
                 church=ahadi.church,
                 sadaka_amount=ahadi_payment.amount,
@@ -1260,6 +1291,7 @@ class AhadiPaymentListCreateView(ListCreateAPIView):
                 created_by=ahadi_payment.inserted_by,
                 updated_by=ahadi_payment.updated_by,
             )
+           logger.info(f"Created Sadaka: {sadaka.id}")
         return ahadi_payment
 
 
@@ -1315,9 +1347,11 @@ class MavunoPaymentListCreateView(ListCreateAPIView):
     serializer_class = MavunoPaymentSerializer
     permission_classes = [IsAuthenticated]
     pagination_class = LargeResultsSetPagination
+    sms_service = SMSQueueService()
 
     def get_queryset(self):
         mavuno_id = self.request.query_params.get('mavuno_id')
+        logger.info(f"Fetching MavunoPayments for mavuno_id: {mavuno_id}")
         if mavuno_id:
             return MavunoPayments.objects.filter(mavuno_id=mavuno_id)
         return MavunoPayments.objects.all()
@@ -1353,28 +1387,26 @@ class MavunoPaymentListCreateView(ListCreateAPIView):
     @transaction.atomic
     def perform_create(self, serializer):
         mavuno_payment = serializer.save()
+        logger.info(f"Created MavunoPayment: {mavuno_payment.id}")
 
         try:
             mavuno = Mavuno.objects.select_for_update().get(id=mavuno_payment.mavuno_id)
 
-            print(mavuno)
+            logger.info(f"Locked Mavuno instance: {mavuno.id}")
 
         except Mavuno.DoesNotExist:
             raise serializers.ValidationError("Mavuno does not exist.")
 
         mavuno.collected_amount += mavuno_payment.amount
-        print(mavuno.jumuiya)
-        pushMessage(
-            f"Tumsifu Yesu Kristu,\n Mavuno ya Mpendwa {mavuno_payment.mhumini.first_name + ' ' + mavuno_payment.mhumini.last_name} kiasi cha Tsh {mavuno_payment.amount} \n"
-            f"Yamepokelewa kwa {mavuno_payment.payment_type.name}, Jumuiya {mavuno.jumuiya.name}. Jumla ya mavuno {mavuno.collected_amount} \n Mungu awabariki. Mawasiliano: 0677050573 PAROKIA YA BMC MAKABE.",
+        logger.info(f"Updated Mavuno instance: {mavuno.id}")
+        message = f"Tumsifu Yesu Kristu,\n Mavuno ya Mpendwa {mavuno_payment.mhumini.first_name + ' ' + mavuno_payment.mhumini.last_name} kiasi cha Tsh {mavuno_payment.amount} \n" \
+                  f"Yamepokelewa kwa {mavuno_payment.payment_type.name}, Jumuiya {mavuno.jumuiya.name}. Jumla ya mavuno {mavuno.collected_amount} \n Mungu awabariki. Mawasiliano: 0677050573 PAROKIA YA BMC MAKABE."
 
-            mavuno.jumuiya.address
-        )
-        pushMessage(
-            f"Tumsifu Yesu Kristu,\n Mavuno ya Mpendwa {mavuno_payment.mhumini.first_name + ' ' + mavuno_payment.mhumini.last_name} kiasi cha Tsh {mavuno_payment.amount} \n"
-                    f"Yamepokelewa kwa {mavuno_payment.payment_type.name}, Jumuiya {mavuno.jumuiya.name}. Jumla ya mavuno {mavuno.collected_amount}. \nMungu awabariki. Mawasiliano: 0677050573 PAROKIA YA BMC MAKABE.",
-                    mavuno.jumuiya.namba_ya_simu,
-        )
+     
+        self.sms_service.add_to_queue(message, mavuno.jumuiya.namba_ya_simu, mavuno.jumuiya.name)
+      
+        self.sms_service.add_to_queue(message, mavuno.jumuiya.address, mavuno.jumuiya.name)
+        logger.info(f"SMS notification queued for MavunoPayment: {mavuno_payment.id}")
 
         mavuno.save()
 

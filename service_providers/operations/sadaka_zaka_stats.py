@@ -6,13 +6,16 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from datetime import datetime
-
-from .message import pushMessage
+from ..sms_queue_service import SMSQueueService
 from ..models import Zaka, Sadaka, CardsNumber
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class SadakaZakaStats(APIView):
     permission_classes = [IsAuthenticated]
+
 
     def get(self, request):
         query_type = request.query_params.get('type')
@@ -141,6 +144,7 @@ class SadakaZakaStats(APIView):
 
 class CheckZakaPresenceView(APIView):
     permission_classes = [IsAuthenticated]
+    sms_service = SMSQueueService();
 
     def get(self, request):
         month = request.query_params.get('month')
@@ -150,6 +154,8 @@ class CheckZakaPresenceView(APIView):
         church_id = request.query_params.get('church_id')
         query_type = request.query_params.get('query_type')  # Determines the action: 'check' or 'reminder'
 
+        logger.info(f"=============================================================================")
+        logger.info(f"Received a request to check Zaka presence for month: {month}, year: {year}, church_id: {church_id}")
         if not month or not year:
             return Response({"error": "Month and year are required."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -277,10 +283,11 @@ class CheckZakaPresenceView(APIView):
         # Send SMS to each unpaid wahumini
         for mhumini in unpaid_wahumini:
             print(mhumini.phone_number)
+            mhumini_name = mhumini.first_name + " " + mhumini.last_name
             message = (f"Tumsifu Yesu Kristu,\n Mpendwa {mhumini.first_name} {mhumini.first_name} , Unakumbushwa kurejesha bahasha yako ya  zaka kwa miezi: {month_names[month]} mwaka {year}. Asante kwa mchango wako na Mungu akubariki.\n"
                        f"KAMATI YA ZAKA, PAROKIA YA BMC MAKABE.")
-            pushMessage(message, mhumini.phone_number)  # Assuming `phone_number` field exists
-
+            self.sms_service.add_to_queue(message, mhumini.phone_number,mhumini_name )
+        logger.info(f"Sent SMS reminders to {len(unpaid_wahumini)} unpaid wahumini for month: {month}, year: {year}, church_id: {church_id}")
         return {"status": "SMS reminders sent to unpaid wahumini"}
 
 
@@ -331,6 +338,6 @@ class CheckZakaPresenceView(APIView):
             unpaid_months_str = ", ".join([f"{month_names[month]} {year}" for month, year in unpaid_months])
             message = (f"Tumsifu Yesu Kristu,\n Mpendwa {mhumini.first_name} {mhumini.last_name}, Unakumbushwa kurejesha bahasha yako ya  zaka kwa miezi: {unpaid_months_str}. Asante kwa mchango wako na Mungu akubariki.\n"
                        f"KAMATI YA ZAKA, PAROKIA YA BMC MAKABE.")
-            pushMessage(message, mhumini.phone_number)  # Assuming `phone_number` field exists
-
+            self.sms_service.add_to_queue(message, mhumini.phone_number,mhumini.first_name + " " +mhumini.last_name)
+        logger.info(f"Sent SMS reminders to {len(unpaid_wahumini)} unpaid wahumini for the range: {start_month}/{start_year} to {end_month}/{end_year}, church_id: {church_id}")
         return {"status": "SMS reminders sent to unpaid wahumini"}

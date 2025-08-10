@@ -9,5 +9,6 @@ def pushMessage(message, phone):
         phone,
         sender_id='BMC MAKABE'
     )
+
     print(request)
     return request
