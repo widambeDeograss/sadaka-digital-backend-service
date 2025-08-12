@@ -7,7 +7,7 @@ from .operations.mchango_stats import MchangoStats, MchangoStatsView
 from .operations.sadaka_zaka_stats import SadakaZakaStats, CheckZakaPresenceView
 from .operations.send_dedicated_message import SendDedicatedMessage
 from .operations.sms_traking import AddToQueueView, QueueStatusView, SMSTrackingView, SMSStatsView, SMSDetailView, \
-    ResendFailedSMSView
+    ResendFailedSMSView, ResendSMSView
 from .operations.wahumini_stats import WahuminiStatsView
 from .reports.expences import ExpenseReportView
 from .reports.payment_type_revenue import RevenueByPaymentTypeView
@@ -103,4 +103,5 @@ urlpatterns = [
     path('sms/stats/', SMSStatsView.as_view(), name='sms_stats'),
     path('sms/detail/<int:sms_id>/', SMSDetailView.as_view(), name='sms_detail'),
     path('sms/resend-failed/', ResendFailedSMSView.as_view(), name='resend_failed_sms'),
+    path('sms/resend/', ResendSMSView.as_view(), name='resend_failed_sms'),
 ]

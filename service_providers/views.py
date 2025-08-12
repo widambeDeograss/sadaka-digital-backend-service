@@ -1443,10 +1443,14 @@ class MavunoPaymentListCreateView(ListCreateAPIView):
 
         mavuno.collected_amount += mavuno_payment.amount
         logger.info(f"Updated Mavuno instance: {mavuno.id}")
-        message = f"Tumsifu Yesu Kristu,\n Mavuno ya Mpendwa {mavuno_payment.mhumini.first_name + ' ' + mavuno_payment.mhumini.last_name} kiasi cha Tsh {mavuno_payment.amount} \n" \
+        message = f"Kristu, Mavuno ya Mpendwa {mavuno_payment.mhumini.first_name + ' ' + mavuno_payment.mhumini.last_name} kiasi cha Tsh {mavuno_payment.amount} \n" \
                   f"Yamepokelewa kwa {mavuno_payment.payment_type.name}, Jumuiya {mavuno.jumuiya.name}. Jumla ya mavuno {mavuno.collected_amount} \n Mungu awabariki. Mawasiliano: 0677050573 PAROKIA YA BMC MAKABE."
+        logger.info(f"Checking if MUUMINI HAS PHONE NUMBER {mavuno_payment.mhumini.phone_number}", )
+        if mavuno_payment.mhumini.phone_number:
+            mhumini_message = f"Kristu, Mavuno yako ya kiasi cha Tsh {mavuno_payment.amount} \n" \
+                  f"Yamepokelewa kwa {mavuno_payment.payment_type.name}, Jumuiya {mavuno.jumuiya.name}. Mungu akubariki. Mawasiliano: 0677050573 PAROKIA YA BMC MAKABE."
+            self.sms_service.add_to_queue(mhumini_message, mavuno_payment.mhumini.phone_number, mavuno_payment.mhumini.first_name + ' ' + mavuno_payment.mhumini.last_name )
 
-     
         self.sms_service.add_to_queue(message, mavuno.jumuiya.namba_ya_simu, mavuno.jumuiya.name)
       
         self.sms_service.add_to_queue(message, mavuno.jumuiya.address, mavuno.jumuiya.name)

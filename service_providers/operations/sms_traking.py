@@ -10,6 +10,7 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 from service_providers.models import SMSQueue
 from service_providers.sms_queue_service import SMSQueueService
+from ..management.commands.process_sms_queue import logger
 from ..models import SMSQueue
 import json
 
@@ -353,6 +354,49 @@ class ResendFailedSMSView(View):
                 'updated_count': updated
             })
             
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            }, status=400)
+
+
+class ResendSMSView(View):
+    """
+    Resend failed SMS by changing their status back to WAITING
+    """
+
+    @method_decorator(csrf_exempt)
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            sms_id = data.get('sms_id')
+            logger.info("REceived request for resending sms {}",sms_id)
+
+            if not sms_id:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'No SMS ID provided'
+                }, status=400)
+
+            # Update failed SMS to WAITING status
+            updated = SMSQueue.objects.filter(
+                id=sms_id
+            ).update(
+                status='WAITING',
+                error_message=None,
+                updated_at=timezone.now()
+            )
+
+            return JsonResponse({
+                'success': True,
+                'message': f'{updated} SMS marked for resending',
+                'updated_count': updated
+            })
+
         except Exception as e:
             return JsonResponse({
                 'success': False,
