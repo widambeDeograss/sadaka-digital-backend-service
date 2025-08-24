@@ -206,7 +206,7 @@ class CheckZakaPresenceView(APIView):
 
             card_details.append({
                 "card_no": card.card_no,
-                "mhumini_name": card.mhumini.first_name,
+                "mhumini_name": card.mhumini.first_name + " " + card.mhumini.last_name,
                 "jumuiya":card.mhumini.jumuiya.name,
                 "kanda": card.mhumini.jumuiya.kanda.name,
                 "present": has_entry
@@ -250,7 +250,7 @@ class CheckZakaPresenceView(APIView):
 
             card_details.append({
                 "card_no": card.card_no,
-                "mhumini_name": card.mhumini.first_name,
+                "mhumini_name": card.mhumini.first_name + " " + card.mhumini.last_name,
                 "jumuiya": card.mhumini.jumuiya.name,
                 "kanda": card.mhumini.jumuiya.kanda.name,
                 "monthly_presence": monthly_presence

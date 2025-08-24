@@ -87,13 +87,53 @@ class WahuminiSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+
+
 class CardsNumberSerializer(serializers.ModelSerializer):
     mhumini = serializers.PrimaryKeyRelatedField(queryset=Wahumini.objects.all())
     mhumini_details = WahuminiSerializer(source='mhumini', read_only=True)
+    kanda_name = serializers.SerializerMethodField()
     class Meta:
         model = CardsNumber
         fields = "__all__"
         # depth = 2
+
+    def get_kanda_name(self, obj):
+        if obj.mhumini:
+            return obj.mhumini.jumuiya.kanda.name
+        return None
+
+class CardNumbersExportSerializer(serializers.ModelSerializer):
+    mhumini = serializers.SerializerMethodField()
+    jumuiya_name = serializers.SerializerMethodField()
+    kanda_name = serializers.SerializerMethodField()
+    phone_number = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CardsNumber
+        fields = [
+            'id', 'card_no', 'mhumini', 'kanda_name', 'jumuiya_name','phone_number', 'bahasha_type', 'created_at', 'created_by'
+        ]
+
+    def get_mhumini(self, obj):
+        if obj.mhumini:
+            return obj.mhumini.first_name + " " + obj.mhumini.last_name
+        return None
+    
+    def get_phone_number(self, obj):
+        if obj.mhumini:
+            return obj.mhumini.phone_number
+        return None
+
+    def get_kanda_name(self, obj):
+        if obj.mhumini:
+            return obj.mhumini.jumuiya.kanda.name
+        return None
+    
+    def get_jumuiya_name(self, obj):
+        if obj.mhumini:
+            return obj.mhumini.jumuiya.name
+        return None
 
 
 class PaymentTypeSerializer(serializers.ModelSerializer):

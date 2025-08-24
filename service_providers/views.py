@@ -478,7 +478,7 @@ class CardsNumberListCreateView(ListCreateAPIView):
         if export == 'excel':
             # Fetch all data (bypass pagination)
             queryset = self.get_queryset()
-            serializer = self.get_serializer(queryset, many=True)
+            serializer = CardNumbersExportSerializer(queryset, many=True)
             data = serializer.data
 
             # Convert the data to a DataFrame
