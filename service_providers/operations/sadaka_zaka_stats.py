@@ -282,6 +282,8 @@ class CheckZakaPresenceView(APIView):
 
         # Send SMS to each unpaid wahumini
         for mhumini in unpaid_wahumini:
+            if not mhumini.phone_number:
+                continue
             print(mhumini.phone_number)
             mhumini_name = mhumini.first_name + " " + mhumini.last_name
             message = (f"Tumsifu Yesu Kristu,\n Mpendwa {mhumini.first_name} {mhumini.first_name} , Unakumbushwa kurejesha bahasha yako ya  zaka kwa miezi: {month_names[month]} mwaka {year}. Asante kwa mchango wako na Mungu akubariki.\n"
@@ -334,6 +336,8 @@ class CheckZakaPresenceView(APIView):
         # Send SMS to each unpaid wahumini
         for mhumini_id, details in unpaid_wahumini.items():
             mhumini = details["mhumini"]
+            if not mhumini.phone_number:
+                continue
             unpaid_months = details["unpaid_months"]
             unpaid_months_str = ", ".join([f"{month_names[month]} {year}" for month, year in unpaid_months])
             message = (f"Tumsifu Yesu Kristu,\n Mpendwa {mhumini.first_name} {mhumini.last_name}, Unakumbushwa kurejesha bahasha yako ya  zaka kwa miezi: {unpaid_months_str}. Asante kwa mchango wako na Mungu akubariki.\n"
